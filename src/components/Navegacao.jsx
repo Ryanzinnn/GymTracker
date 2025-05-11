@@ -13,7 +13,7 @@ const Navegacao = () => {
   const tabs = [
     { label: "Exercícios", path: "/app", icon: <Dumbbell size={20} /> },
     { label: "Medições", path: "/medicoes", icon: <Ruler size={20} /> },
-    { label: "Histórico", path: "/historico", icon: <History size={20} /> },
+    { label: "Históricoo", path: "/historico", icon: <History size={20} /> },
     { label: "Biblioteca", path: "/biblioteca", icon: <Book size={20} /> }, // Novo item adicionado
   ];
 
@@ -36,7 +36,7 @@ const Navegacao = () => {
                 <span>{tab.label}</span>
                 <span
                   className={`absolute -bottom-1 left-1/2 transform -translate-x-1/2 h-1 w-1.5 rounded-full transition-all duration-300 ${
-                    isActive ? "w-4 bg-blue-600" : "w-0"
+                    isActive ? "w-4 bg-blue-500" : "w-0"
                   }`}
                 ></span>
               </div>
