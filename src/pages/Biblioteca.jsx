@@ -9,12 +9,20 @@ import {
 } from "recharts";
 
 const gruposMusculares = {
-  Peito: ["Supino Reto", "Supino Inclinado", "Crucifixo"],
-  Costas: ["Puxada Frente", "Remada Curvada", "Puxada Unilateral"],
-  Braços: ["Rosca Direta", "Tríceps Testa", "Rosca Martelo"],
-  Ombros: ["Desenvolvimento", "Elevação Lateral", "Crucifixo Inverso"],
-  Pernas: ["Agachamento Livre", "Leg Press", "Cadeira Extensora"],
-  Abdomên: ["Abdominal Reto", "Prancha", "Elevação de Pernas"],
+  Peito: ["Supino Reto (Barra)", "Supino Reto (Halter)", "Supino Reto (Máquina)", "Supino Inclinado (Barra)",
+          "Supino Inclinado (Halter)", "Supino Inclinado (Máquina)", "Peck Deck", "CrossOver (Polia Alta)",
+          "CrossOver (Polia Baixa)"],
+  Costas: ["Puxada Alta (Aberta)", "Puxada Alta (Supinada)", "Puxada Alta (Triângulo)", "Remada Serrote", "Remada Baixa", 
+           "Remada Cavalo", "Remada Máquina", "Barra Fixa", "Face Pull"],
+  Bíceps: ["Rosca Direta (Barra)", "Rosca Direta (Halter)", "Rosca Alternada", "Rosca Scott", "Rosca Martelo", "Rosca Concentrada"],
+  Tríceps: ["Pulley (Corda)", "Pulley (Barra Reta)", "Pulley (Barra V)", "Testa (Polia)", "Testa (Barra)", "Testa (Halter)", 
+            "Francês (Halter)", "Francês (Polia)", "Mergulho (Máquina)"],
+  Antebraço: ["Rosca Inversa", "Rosca Punho", "Rosca Punho Inversa"],
+  Ombros: ["Desenvolvimento (Halter)", "Desenvolvimento (Máquina)", "Crucifixo Inverso", "Elevação Lateral", "Elevação Frontal"],
+  Quadríceps: ["Agachamento Smith", "Agachamento Hack", "Cadeira Extensora", "Leg Press", "Búlgaro (Quadríceps)"],
+  Posterior: ["Stiff (Barra)", "Stiff (Halter)", "Cadeira Flexora", "Mesa Flexora", "Búlgaro (Posterior)", "Elevação Pélvica", "Glúteo Máquina", "Glúteo Polia"],
+  Abdomên: ["Abdominal Máquina", "Prancha", "Elevação de Pernas", "Crunch", "Abdominal Oblíquo", "Prancha Lateral"],
+  Panturrilha: ["Panturrilha em Pé (Máquina)", "Panturrilha em Pé (Smith)", "Panturrilha Leg Press"],
 };
 
 const Biblioteca = () => {
