@@ -11,15 +11,15 @@ const Navegacao = () => {
   const location = useLocation();
 
   const tabs = [
-    { label: "Exercícios", path: "/app", icon: <Dumbbell size={20} /> },
-    { label: "Medições", path: "/medicoes", icon: <Ruler size={20} /> },
-    { label: "Históricoo", path: "/historico", icon: <History size={20} /> },
-    { label: "Biblioteca", path: "/biblioteca", icon: <Book size={20} /> }, // Novo item adicionado
+    { label: "Exercícios", path: "/app", icon: <Dumbbell size={25} /> },
+    { label: "Medições", path: "/medicoes", icon: <Ruler size={25} /> },
+    { label: "Histórico", path: "/historico", icon: <History size={25} /> },
+    { label: "Biblioteca", path: "/biblioteca", icon: <Book size={25} /> }, // Novo item adicionado
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-md z-50">
-      <div className="flex justify-around items-center h-16 pb-5">
+      <div className="flex justify-around items-center h-24 pb-5">
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
 
