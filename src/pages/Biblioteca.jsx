@@ -14,14 +14,15 @@ const gruposMusculares = {
           "CrossOver (Polia Baixa)"],
   Costas: ["Puxada Alta (Aberta)", "Puxada Alta (Supinada)", "Puxada Alta (Triângulo)", "Remada Serrote", "Remada Baixa", 
            "Remada Cavalo", "Remada Máquina", "Barra Fixa", "Face Pull"],
+  Ombros: ["Desenvolvimento (Halter)", "Desenvolvimento (Máquina)", "Crucifixo Inverso", "Elevação Lateral", "Elevação Frontal"],
   Bíceps: ["Rosca Direta (Barra)", "Rosca Direta (Halter)", "Rosca Alternada", "Rosca Scott", "Rosca Martelo", "Rosca Concentrada"],
   Tríceps: ["Pulley (Corda)", "Pulley (Barra Reta)", "Pulley (Barra V)", "Testa (Polia)", "Testa (Barra)", "Testa (Halter)", 
             "Francês (Halter)", "Francês (Polia)", "Mergulho (Máquina)"],
   Antebraço: ["Rosca Inversa", "Rosca Punho", "Rosca Punho Inversa"],
-  Ombros: ["Desenvolvimento (Halter)", "Desenvolvimento (Máquina)", "Crucifixo Inverso", "Elevação Lateral", "Elevação Frontal"],
   Quadríceps: ["Agachamento Smith", "Agachamento Hack", "Cadeira Extensora", "Leg Press", "Búlgaro (Quadríceps)"],
-  Posterior: ["Stiff (Barra)", "Stiff (Halter)", "Cadeira Flexora", "Mesa Flexora", "Búlgaro (Posterior)", "Elevação Pélvica", "Glúteo Máquina", "Glúteo Polia"],
-  Abdomên: ["Abdominal Máquina", "Prancha", "Elevação de Pernas", "Crunch", "Abdominal Oblíquo", "Prancha Lateral"],
+  Posterior: ["Stiff (Barra)", "Stiff (Halter)", "Cadeira Flexora", "Mesa Flexora", "Búlgaro (Posterior)", "Elevação Pélvica", "Coice Glúteo (Máquina)", "Coice Glúteo (Polia)"],
+  Quadril: ["Cadeira Abdutora (Máquina)", "Cadeira Adutora (Máquina)", "Abdução (Polia)", "Adução (Polia)"],
+  Abdomên: ["Crunch (Máquina)", "Crunch Inverso", "Elevação de Pernas", "Rotação Russa (Oblíquo)", "Lenhador (Polia)"],
   Panturrilha: ["Panturrilha em Pé (Máquina)", "Panturrilha em Pé (Smith)", "Panturrilha Leg Press"],
 };
 
