@@ -7,6 +7,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useAuth } from "../context/AuthContext";
+import { getUserData } from "../utils/storage";
 
 const gruposMusculares = {
   Peito: ["Supino Reto (Barra)", "Supino Reto (Halter)", "Supino Reto (Máquina)", "Supino Inclinado (Barra)",
@@ -32,13 +34,14 @@ const Biblioteca = () => {
   const [filtroGrupo, setFiltroGrupo] = useState("");
   const [buscaExercicio, setBuscaExercicio] = useState("");
   const [imagemModal, setImagemModal] = useState(null);
+  const { user } = useAuth();
 
   const toggleExercicio = (nome) => {
     setExercicioSelecionado(exercicioSelecionado === nome ? null : nome);
   };
 
   const buscarProgresso = (exercicio) => {
-    const dados = JSON.parse(localStorage.getItem("gymtracker_cargas") || "[]");
+    const dados = getUserData("gymtracker_cargas", user?.uid);
     const progressoPorData = {};
 
     dados.forEach((item) => {

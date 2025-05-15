@@ -1,27 +1,28 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { getUserData } from "../utils/storage";
 
 const Historico = () => {
+  const { user } = useAuth();
   const [registrosAgrupados, setRegistrosAgrupados] = useState({});
   const [expandedDates, setExpandedDates] = useState({});
   const [grupoSelecionado, setGrupoSelecionado] = useState("Todos");
   const [tituloSelecionado, setTituloSelecionado] = useState("Todos");
 
-  // Obter dia da semana
   const getDiaSemana = (dataString) => {
     const [dia, mes, ano] = dataString.split("/");
-    const data = new Date(Number(ano), Number(mes) - 1, Number(dia)); // mês - 1
+    const data = new Date(Number(ano), Number(mes) - 1, Number(dia));
     return data.toLocaleDateString("pt-BR", { weekday: "long" });
   };
 
-  // Expandir ou recolher seção de um dia
   const toggleExpand = (data) => {
     setExpandedDates((prev) => ({ ...prev, [data]: !prev[data] }));
   };
 
   useEffect(() => {
-    const registros = JSON.parse(
-      localStorage.getItem("gymtracker_cargas") || "[]"
-    );
+    if (!user?.uid) return;
+
+    const registros = getUserData("gymtracker_cargas", user.uid) || [];
 
     const agrupados = registros.reduce((acc, registro) => {
       const data = registro.data;
@@ -33,13 +34,12 @@ const Historico = () => {
     const agrupadosOrdenados = Object.fromEntries(
       Object.entries(agrupados).sort(
         ([dataA], [dataB]) =>
-          new Date(dataB.split("/").reverse()) -
-          new Date(dataA.split("/").reverse())
+          new Date(dataB.split("/").reverse()) - new Date(dataA.split("/").reverse())
       )
     );
 
     setRegistrosAgrupados(agrupadosOrdenados);
-  }, []);
+  }, [user]);
 
   const gruposDisponiveis = Array.from(
     new Set(
@@ -53,28 +53,38 @@ const Historico = () => {
     new Set(
       Object.values(registrosAgrupados)
         .flat()
-        .map((r) => r.tituloTreino || "Sem Título")
+        .map((r) => r.tituloTreino || "Sem título")
     )
   );
 
-  const limparRegistros = () => {
-    if (confirm("Tem certeza que deseja apagar todos os registros?")) {
-      localStorage.removeItem("gymtracker_cargas");
-      setRegistrosAgrupados({});
-    }
-  };
+  const registrosFiltrados = Object.entries(registrosAgrupados).reduce(
+    (acc, [data, registros]) => {
+      const filtrados = registros.filter(
+        (r) =>
+          (grupoSelecionado === "Todos" ||
+            r.grupoMuscular === grupoSelecionado) &&
+          (tituloSelecionado === "Todos" ||
+            r.tituloTreino === tituloSelecionado)
+      );
+
+      if (filtrados.length > 0) acc[data] = filtrados;
+
+      return acc;
+    },
+    {}
+  );
 
   return (
     <div className="p-4 pb-24 sm:p-6 md:p-8 lg:p-10 max-w-screen-md mx-auto">
-      <h1 className="text-xl font-bold mb-4">Histórico de Cargas</h1>
+      <h1 className="text-xl font-bold mb-4">Histórico de Treinos</h1>
 
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <select
           value={grupoSelecionado}
           onChange={(e) => setGrupoSelecionado(e.target.value)}
-          className="border rounded p-2 flex-1 min-w-[140px]"
+          className="border rounded px-3 py-2"
         >
-          <option value="Todos">Todos os Grupos</option>
+          <option value="Todos">Todos os grupos</option>
           {gruposDisponiveis.map((grupo) => (
             <option key={grupo} value={grupo}>
               {grupo}
@@ -85,9 +95,9 @@ const Historico = () => {
         <select
           value={tituloSelecionado}
           onChange={(e) => setTituloSelecionado(e.target.value)}
-          className="border rounded p-2 flex-1 min-w-[140px]"
+          className="border rounded px-3 py-2"
         >
-          <option value="Todos">Todos os Títulos</option>
+          <option value="Todos">Todos os títulos</option>
           {titulosDisponiveis.map((titulo) => (
             <option key={titulo} value={titulo}>
               {titulo}
@@ -96,83 +106,53 @@ const Historico = () => {
         </select>
       </div>
 
-      {/* Botão abaixo */}
-      <div className="mt-4 pb-4">
-        <button
-          onClick={limparRegistros}
-          className="bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600 w-full sm:w-auto "
-        >
-          Limpar Histórico
-        </button>
-      </div>
-
-      {Object.keys(registrosAgrupados).length === 0 ? (
-        <p className="text-gray-600">Nenhum registro encontrado.</p>
+      {Object.keys(registrosFiltrados).length === 0 ? (
+        <p className="text-gray-500 text-center mt-6">
+          Nenhum registro encontrado.
+        </p>
       ) : (
-        Object.entries(registrosAgrupados).map(([data, registros]) => {
-          const registrosFiltrados = registros.filter((r) => {
-            const grupoOK =
-              grupoSelecionado === "Todos" ||
-              r.grupoMuscular === grupoSelecionado;
-            const tituloOK =
-              tituloSelecionado === "Todos" ||
-              (r.tituloTreino || "Sem Título") === tituloSelecionado;
-            return grupoOK && tituloOK;
-          });
-
-          if (registrosFiltrados.length === 0) return null;
-
-          const diaSemana = getDiaSemana(data);
-          const tituloTreino =
-            registros[0]?.tituloTreino || "Treino sem título";
-
-          return (
-            <div key={data} className="mb-6 border rounded shadow">
-              <button
-                onClick={() => toggleExpand(data)}
-                className="w-full text-left p-3 bg-gray-200 hover:bg-gray-300 flex justify-between items-center"
-              >
-                <span className="font-semibold">
-                  {tituloTreino} — {data} ({diaSemana})
-                </span>
-                <span className="text-xl">
-                  {expandedDates[data] ? "▲" : "▼"}
-                </span>
-              </button>
-
-              {expandedDates[data] && (
-                <div className="p-4 bg-white">
-                  {registrosFiltrados.map((registro) => (
-                    <div
-                      key={registro.id}
-                      className="bg-gray-100 rounded p-4 shadow mb-4"
-                    >
-                      <div className="flex justify-between items-center mb-2">
-                        <div>
-                          <p className="font-bold text-gray-800">
-                            {registro.exercicio}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Grupo: {registro.grupoMuscular}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        {registro.series.map((serie, index) => (
-                          <p key={index} className="text-sm text-gray-700">
-                            Série {index + 1}: {serie.carga} kg x{" "}
-                            {serie.repeticoes} reps
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+        Object.entries(registrosFiltrados).map(([data, registros]) => (
+          <div key={data} className="mb-6 border rounded p-4 bg-gray-50 shadow">
+            <div
+              className="cursor-pointer flex justify-between items-center"
+              onClick={() => toggleExpand(data)}
+            >
+              <h2 className="text-md font-bold text-gray-800">
+                {data} ({getDiaSemana(data)})
+              </h2>
+              <span className="text-blue-600 text-sm">
+                {expandedDates[data] ? "Recolher ▲" : "Expandir ▼"}
+              </span>
             </div>
-          );
-        })
+
+            {expandedDates[data] && (
+              <div className="mt-4 space-y-4">
+                {registros.map((registro) => (
+                  <div
+                    key={registro.id}
+                    className="bg-white rounded shadow p-3 border"
+                  >
+                    <p className="font-semibold">{registro.exercicio}</p>
+                    <p className="text-sm text-gray-600">
+                      Grupo: {registro.grupoMuscular}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Título: {registro.tituloTreino || "Sem título"}
+                    </p>
+                    <div className="mt-2 space-y-1">
+                      {registro.series.map((serie, index) => (
+                        <p key={index} className="text-sm">
+                          Série {index + 1}: {serie.carga}kg x{" "}
+                          {serie.repeticoes} repetições
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))
       )}
     </div>
   );

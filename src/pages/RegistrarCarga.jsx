@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { exercicios as exerciciosDaBiblioteca } from "./Biblioteca";
+import { useAuth } from "../context/AuthContext";
+import { getUserData, saveUserData } from "../utils/storage";
 
 const RegistrarCarga = () => {
   const [modalAberto, setModalAberto] = useState(false);
@@ -7,6 +9,7 @@ const RegistrarCarga = () => {
   const [exerciciosSelecionados, setExerciciosSelecionados] = useState([]);
   const [grupoSelecionado, setGrupoSelecionado] = useState("Todos");
   const [tituloTreino, setTituloTreino] = useState("");
+  const { user } = useAuth();
 
   useEffect(() => {
     setExercicios(exerciciosDaBiblioteca);
@@ -71,9 +74,7 @@ const RegistrarCarga = () => {
     if (exerciciosSelecionados.length === 0)
       return alert("Adicione ao menos um exercício.");
 
-    const registrosSalvos = JSON.parse(
-      localStorage.getItem("gymtracker_cargas") || "[]"
-    );
+    const registrosSalvos = getUserData("gymtracker_cargas", user?.uid);
 
     const dataAtual = new Date().toLocaleDateString();
 
@@ -92,7 +93,8 @@ const RegistrarCarga = () => {
     );
 
     alert("Registros salvos com sucesso!");
-
+    
+    saveUserData("gymtracker_cargas", user?.uid, [...registrosSalvos, ...novosRegistros]);
     setTituloTreino("");
     setExerciciosSelecionados([]);
   };
