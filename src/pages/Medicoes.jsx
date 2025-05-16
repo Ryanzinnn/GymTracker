@@ -71,6 +71,8 @@ const getClassificacaoIMC = (imc) => {
   return ""; // Caso não se encaixe em nenhuma faixa (improvável com as checagens anteriores)
 };
 
+const CHAVE_BASE_CONSUMO_AGUA = "gymtracker_consumo_agua"; // Chave base para o consumo de água
+
 const Medicoes = () => {
   const { user } = useAuth();
 
@@ -265,14 +267,27 @@ const Medicoes = () => {
       alert("Você precisa estar logado para limpar os dados.");
       return;
     }
-    const confirmacao = window.confirm("Tem certeza que deseja apagar todos os seus dados de medições? Esta ação não pode ser desfeita.");
+    const confirmacao = window.confirm("Tem certeza que deseja apagar todos os seus dados de medições? Esta ação não pode ser desfeita e também limpará seu registro de consumo de água do dia.");
     if (confirmacao) {
+      // saveUserData("medicoes_dataNascimento", user.uid, "");
+      // saveUserData("medicoes_altura", user.uid, "");
       saveUserData("medicoes_pesos_historico", user.uid, []);
       saveUserData("medicoes_gorduras_historico", user.uid, []);
       saveUserData("medicoes_corpo_historico", user.uid, []);
+      
+      // Limpar também os dados de consumo de água
+      // Para garantir que o App.jsx recarregue com consumo zerado, salvamos null
+      // ou um objeto que represente o estado inicial zerado para o dia.
+      const hojeISO = new Date().toISOString().split("T")[0];
+      saveUserData(CHAVE_BASE_CONSUMO_AGUA, user.uid, {
+        data: hojeISO,
+        consumo: 0,
+        meta: 2000, // Meta padrão, será recalculada no App.jsx se peso/idade existirem
+        ultimoRegistroHora: null
+      });
 
       carregarDadosDoUsuario(); 
-      alert("Todos os seus dados de medições foram apagados.");
+      alert("Todos os seus dados de medições e o consumo de água do dia foram apagados.");
     }
   };
 
@@ -315,11 +330,11 @@ const Medicoes = () => {
     <div className="p-4 pb-24 max-w-screen-md mx-auto space-y-6">
       <div className="bg-blue-100 p-4 rounded-xl shadow space-y-2">
         <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-semibold">Seus dados</h2>
+          <h2 className="text-lg font-semibold text-blue-700">Seus dados</h2>
           <button
             onClick={handleLimparTodosOsDados}
             className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 flex items-center"
-            title="Limpar todos os dados de medições"
+            title="Limpar todos os dados de medições e consumo de água do dia"
           >
             <Trash2 size={16} className="mr-1" /> Limpar Tudo
           </button>
@@ -338,12 +353,12 @@ const Medicoes = () => {
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <p>
+            <p className="text-blue-700">
               Idade: <strong>{idade !== null ? `${idade} anos` : "Não informada"}</strong>
             </p>
             <button
               onClick={() => setMostraInputNascimento(true)}
-              className="text-sm text-blue-600 underline"
+              className="text-sm text-blue-600"
             >
               Alterar
             </button>
@@ -364,12 +379,12 @@ const Medicoes = () => {
           </div>
         ) : (
           <div className="flex items-center justify-between mt-2">
-            <p>
+            <p className="text-blue-700">
               Altura: <strong>{alturaValida ? `${(alturaValida / 100).toFixed(2)} m` : "Não informada"}</strong>
             </p>
             <button
               onClick={() => setMostraInputAltura(true)}
-              className="text-sm text-blue-600 underline"
+              className="text-sm text-blue-600"
             >
               Alterar
             </button>
@@ -385,13 +400,13 @@ const Medicoes = () => {
           </button>
         )}
 
-        <p className="mt-2">
+        <p className="mt-2 text-blue-700">
           Peso atual:{" "}
           <strong>
             {ultimoPesoValido ? `${ultimoPesoValido} kg` : "—"}
           </strong>
         </p>
-        <p>
+        <p className="text-blue-700">
           IMC:{" "}
           <strong>
             {imcCalculado}
@@ -405,7 +420,7 @@ const Medicoes = () => {
         onSubmit={handleSubmitPeso}
         className="bg-white p-4 rounded-xl shadow space-y-3"
       >
-        <h2 className="text-lg font-semibold">Peso Corporal</h2>
+        <h2 className="text-lg font-semibold text-black">Peso Corporal</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="pesoInput" className="block text-sm font-medium text-gray-700">Peso (kg):</label>
@@ -450,9 +465,7 @@ const Medicoes = () => {
             </p>
           </>
         ) : (
-          <p className="text-sm text-gray-600 mt-2">
-            Nenhuma medição de peso registrada ainda.
-          </p>
+          <p className="text-sm text-gray-500 mt-2">Nenhum registro de peso encontrado.</p>
         )}
       </form>
 
@@ -461,15 +474,15 @@ const Medicoes = () => {
         onSubmit={handleSubmitGordura}
         className="bg-white p-4 rounded-xl shadow space-y-3"
       >
-        <h2 className="text-lg font-semibold">Gordura Corporal (%)</h2>
-         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <h2 className="text-lg font-semibold text-black">Percentual de Gordura</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="gorduraInput" className="block text-sm font-medium text-gray-700">Gordura (%):</label>
             <input
               id="gorduraInput"
               type="number"
               step="0.1"
-              placeholder="Ex: 14.5"
+              placeholder="Ex: 15.3"
               value={gordura}
               onChange={(e) => setGordura(e.target.value)}
               className="w-full p-2 border rounded mt-1"
@@ -487,7 +500,7 @@ const Medicoes = () => {
             />
           </div>
         </div>
-        <button type="submit" className="bg-yellow-500 text-white px-4 py-2 rounded w-full sm:w-auto">
+        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded w-full sm:w-auto">
           Registrar Gordura
         </button>
         {gorduras.length > 0 ? (
@@ -498,157 +511,121 @@ const Medicoes = () => {
             <p className="text-sm text-gray-500 mt-2">
               Última medição:{" "}
               {(() => {
-                const ultimaRegGordura = gorduras.at(-1);
-                if (!ultimaRegGordura?.data) return "—";
-                const [ano, mes, dia] = ultimaRegGordura.data.split("-");
-                return `${dia}/${mes}/${ano} (${ultimaRegGordura.valor}%)`;
+                const ultimoRegGordura = gorduras.at(-1);
+                if (!ultimoRegGordura?.data) return "—";
+                const [ano, mes, dia] = ultimoRegGordura.data.split("-");
+                return `${dia}/${mes}/${ano} (${ultimoRegGordura.valor}%)`;
               })()}
             </p>
           </>
         ) : (
-          <p className="text-sm text-gray-600 mt-2">
-            Nenhuma medição de gordura registrada ainda.
-          </p>
+          <p className="text-sm text-gray-500 mt-2">Nenhum registro de gordura encontrado.</p>
         )}
       </form>
 
-      {/* Medições Corporais */}
-      <div className="bg-white p-4 rounded-xl shadow space-y-3">
-        <h2 className="text-lg font-semibold">Medidas Corporais</h2>
-        <div className="text-center sm:text-right">
+      {/* Medidas Corporais */}
+      <div className="bg-white p-4 rounded-xl shadow">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-lg font-semibold text-black">Medidas Corporais</h2>
           <button
-            onClick={() => setModalAberto(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2 mx-auto sm:mx-0 sm:ml-auto"
+            onClick={() => {
+              setParteSelecionada("");
+              setValor("");
+              setData(hojeFormatada());
+              setModalAberto(true);
+            }}
+            className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 flex items-center"
           >
-            <Plus size={18} /> Nova Medição Corporal
+            <Plus size={16} className="mr-1" /> Adicionar Medida
           </button>
         </div>
-
-        <div className="mt-4">
-          <h3 className="text-md font-semibold mb-2">Histórico de Medidas</h3>
-          {partesCorpo.map((parte, i) => (
-            <div
-              key={i}
-              className="flex justify-between items-center border-b py-2 last:border-b-0"
-            >
-              <p className="flex items-center gap-2 text-sm">
-                <Ruler size={16} className="text-gray-600" /> {parte}
-              </p>
-              <button
-                onClick={() => abrirModalGrafico(parte)}
-                className="text-blue-600 text-sm underline hover:text-blue-800"
-              >
-                Ver Progresso
-              </button>
-            </div>
-          ))}
+        <div className="space-y-2">
+          {partesCorpo.map((parte) => {
+            const historicoParte = medicoes.filter((m) => m.parte === parte);
+            const ultimaMedida = historicoParte.length > 0 ? historicoParte.sort((a,b) => new Date(b.data) - new Date(a.data))[0] : null;
+            return (
+              <div key={parte} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                <span className="text-sm text-gray-700">{parte}:</span>
+                <div className="flex items-center">
+                  <span className="text-sm font-medium mr-3">
+                    {ultimaMedida ? `${ultimaMedida.valor}${parte === "RC/Q" ? "" : " cm"} (${new Date(ultimaMedida.data + "T00:00:00").toLocaleDateString("pt-BR")})` : "N/A"}
+                  </span>
+                  {historicoParte.length > 0 && (
+                    <button onClick={() => abrirModalGrafico(parte)} className="text-xs text-blue-500 hover:text-blue-700">
+                      Ver Histórico
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Modal para nova medição corporal*/}
+      {/* Modal para adicionar medida */}
       {modalAberto && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-semibold mb-4 text-gray-800">
-              Registrar Medida Corporal
-            </h3>
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+            <h3 className="text-xl font-semibold mb-4">Adicionar Medida Corporal</h3>
             <form onSubmit={handleSubmitMedida} className="space-y-4">
               <div>
-                <label htmlFor="parteCorpoSelect" className="block text-sm font-medium text-gray-700 mb-1">Parte do Corpo:</label>
+                <label htmlFor="parteCorpoSelect" className="block text-sm font-medium text-gray-700">Parte do Corpo:</label>
                 <select
                   id="parteCorpoSelect"
                   value={parteSelecionada}
                   onChange={(e) => setParteSelecionada(e.target.value)}
+                  className="w-full p-2 border rounded mt-1"
                   required
-                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Selecione...</option>
-                  {partesCorpo
-                    .filter((p) => p !== "RC/Q")
-                    .map((p, i) => (
-                      <option key={i} value={p}>
-                        {p}
-                      </option>
-                    ))}
+                  {partesCorpo.filter(p => p !== "RC/Q").map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div>
-                <label htmlFor="valorMedidaInput" className="block text-sm font-medium text-gray-700 mb-1">Valor (cm):</label>
+                <label htmlFor="valorMedidaInput" className="block text-sm font-medium text-gray-700">Valor ({parteSelecionada === "RC/Q" ? "" : "cm"}):</label>
                 <input
                   id="valorMedidaInput"
                   type="number"
                   step="0.1"
-                  placeholder="Ex: 35.5"
+                  placeholder={parteSelecionada === "RC/Q" ? "Calculado automaticamente" : "Ex: 35.5"}
                   value={valor}
                   onChange={(e) => setValor(e.target.value)}
+                  className="w-full p-2 border rounded mt-1"
                   required
-                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  disabled={parteSelecionada === "RC/Q"}
                 />
               </div>
               <div>
-                <label htmlFor="dataMedidaInput" className="block text-sm font-medium text-gray-700 mb-1">Data da Medição:</label>
+                <label htmlFor="dataMedidaInput" className="block text-sm font-medium text-gray-700">Data da Medição:</label>
                 <input
                   id="dataMedidaInput"
                   type="date"
                   value={data}
                   onChange={(e) => setData(e.target.value)}
+                  className="w-full p-2 border rounded mt-1"
                   required
-                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setModalAberto(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
-                  Registrar Medida
-                </button>
+              <div className="flex justify-end space-x-3 pt-2">
+                <button type="button" onClick={() => setModalAberto(false)} className="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded hover:bg-gray-300">Cancelar</button>
+                <button type="submit" className="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700">Salvar Medida</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal do gráfico de evolução */}
+      {/* Modal para gráfico de medidas corporais */}
       {modalGraficoAberto && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-gray-800">
-                Progresso: {parteSelecionada}
-              </h3>
-              <button
-                onClick={() => setModalGraficoAberto(false)}
-                className="text-red-500 hover:text-red-700 text-2xl"
-              >
-                &times;
-              </button>
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
+            <h3 className="text-xl font-semibold mb-4">Histórico de {parteSelecionada}</h3>
+            <div style={{height: "300px"}}>
+                <Line data={gerarGrafico(medicoes.filter(m => m.parte === parteSelecionada).sort((a,b) => new Date(a.data) - new Date(b.data)), `${parteSelecionada} (${parteSelecionada === "RC/Q" ? "" : "cm"})`, "#3B82F6")} options={{ maintainAspectRatio: false }} />
             </div>
-            {(() => {
-              const dadosParte = medicoes.filter(
-                (m) => m.parte === parteSelecionada
-              );
-              return dadosParte.length > 0 ? (
-                <Line
-                  data={gerarGrafico(
-                    dadosParte,
-                    `${parteSelecionada} (${parteSelecionada === "RC/Q" ? "Índice" : "cm"})`,
-                    "#3B82F6"
-                  )}
-                />
-              ) : (
-                <p className="text-sm text-gray-600 text-center py-5">
-                  Nenhuma medição encontrada para "{parteSelecionada}" ainda.
-                </p>
-              );
-            })()}
+            <div className="text-right mt-4">
+              <button onClick={() => setModalGraficoAberto(false)} className="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700">Fechar</button>
+            </div>
           </div>
         </div>
       )}
