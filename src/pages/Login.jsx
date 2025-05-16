@@ -1,34 +1,36 @@
-// src/pages/Login_moderno.jsx
 import React, { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext"; // Presumo que o caminho está correto
+import { useAuth } from "../context/AuthContext";
 import { Navigate } from "react-router-dom";
-import { LogIn, Zap } from "lucide-react"; // Ícones para um toque moderno
+import { LogIn, Zap } from "lucide-react"; 
 
-export default function LoginModerno() {
+export default function LoginModernoIconeResponsivo() {
   const { login, user } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Ativa a animação de entrada após um pequeno atraso para o efeito ser visível
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 100);
-    return () => clearTimeout(timer);
+
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      clearTimeout(timer);
+      document.body.style.overflow = "auto";
+    };
   }, []);
 
   if (user) return <Navigate to="/app" />;
 
   return (
-    // Aumentado o padding geral da página, especialmente o horizontal, para dar mais respiro em telas menores
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-gray-800 flex flex-col items-center justify-center p-6 sm:p-4 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-gray-800 flex flex-col items-center justify-center overflow-hidden">
       <div 
-        className={`transform transition-all duration-1000 ease-out ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
+        className={`w-full px-6 sm:px-8 transform transition-all duration-1000 ease-out ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
       >
-        {/* O padding interno do card (p-8 sm:p-10) já é generoso, o problema era o espaço externo. */}
-        <div className="bg-slate-800 bg-opacity-50 backdrop-blur-md p-8 sm:p-10 rounded-3xl shadow-2xl w-full max-w-md text-center border border-slate-700">
-          <div className="mb-8 flex justify-center items-center">
-            <Zap size={48} className="text-blue-400 animate-pulse" />
-            <h1 className="ml-3 text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-teal-300 to-green-400">
+        <div className="bg-slate-800 bg-opacity-50 backdrop-blur-md p-8 sm:p-10 rounded-3xl shadow-2xl w-full max-w-md mx-auto text-center border border-slate-700">
+          <div className="mb-8 flex flex-row justify-center items-center">
+            <Zap className="text-blue-400 animate-pulse w-9 h-9 sm:w-12 sm:h-12" />
+            <h1 className="ml-2 sm:ml-3 text-4xl sm:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-teal-300 to-green-400">
               GymTracker
             </h1>
           </div>
@@ -51,37 +53,9 @@ export default function LoginModerno() {
         </div>
       </div>
       
-      {/* Elementos decorativos animados (opcional) */}
-      <div className={`absolute top-1/4 left-1/4 w-32 h-32 bg-blue-500 rounded-full mix-blend-screen filter blur-xl opacity-0 animate-blob animation-delay-2000 ${isVisible ? "opacity-20" : "opacity-0"}`}></div>
-      <div className={`absolute top-1/2 left-3/4 w-32 h-32 bg-teal-400 rounded-full mix-blend-screen filter blur-xl opacity-0 animate-blob animation-delay-4000 ${isVisible ? "opacity-20" : "opacity-0"}`}></div>
-      <div className={`absolute bottom-1/4 left-1/3 w-32 h-32 bg-green-400 rounded-full mix-blend-screen filter blur-xl opacity-0 animate-blob ${isVisible ? "opacity-20" : "opacity-0"}`}></div>
-
-      {/* Adicionar CSS para animação de blob se não estiver no seu CSS global */}
-      <style jsx global>{`
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-        @keyframes blob {
-          0% {
-            transform: scale(1) translate(0px, 0px);
-          }
-          33% {
-            transform: scale(1.1) translate(30px, -50px);
-          }
-          66% {
-            transform: scale(0.9) translate(-20px, 20px);
-          }
-          100% {
-            transform: scale(1) translate(0px, 0px);
-          }
-        }
-      `}</style>
+      <div className={`fixed top-1/4 left-1/4 w-32 h-32 bg-blue-500 rounded-full mix-blend-screen filter blur-xl opacity-0 animate-blob animation-delay-2000 ${isVisible ? "opacity-20" : "opacity-0"}`}></div>
+      <div className={`fixed top-1/2 left-3/4 w-32 h-32 bg-teal-400 rounded-full mix-blend-screen filter blur-xl opacity-0 animate-blob animation-delay-4000 ${isVisible ? "opacity-20" : "opacity-0"}`}></div>
+      <div className={`fixed bottom-1/4 left-1/3 w-32 h-32 bg-green-400 rounded-full mix-blend-screen filter blur-xl opacity-0 animate-blob ${isVisible ? "opacity-20" : "opacity-0"}`}></div>
     </div>
   );
 }
