@@ -127,7 +127,7 @@ const Historico = () => {
   return (
     <PageWrapper>
       <div
-        className={`pb-32 transform transition-all duration-700 ease-out ${
+        className={` p-1 max-w-screen-md mx-auto space-y-6 transform transition-all duration-700 ease-out ${
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
         }`}
       >

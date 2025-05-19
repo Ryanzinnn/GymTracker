@@ -39,14 +39,20 @@ const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
   const [posicao, setPosicao] = useState({ x: 16, y: 16 }); // Posição inicial no canto superior direito
   const [arrastando, setArrastando] = useState(false);
   const [offsetArrasto, setOffsetArrasto] = useState({ x: 0, y: 0 });
+  const [ultimoToque, setUltimoToque] = useState(0); // Para detectar cliques vs. arrasto no iOS
+  const [moveuSignificativamente, setMoveuSignificativamente] = useState(false); // Para rastrear se houve movimento significativo
   const refTemporizador = useRef(null);
   const refAudio = useRef(null);
   const refCronometro = useRef(null);
   const refResetAutomatico = useRef(null);
+  const refMinimizacaoAutomatica = useRef(false); // Referência para controlar minimização automática
+  const refPosicaoInicial = useRef({ x: 0, y: 0 }); // Para rastrear a posição inicial do toque
 
   // Inicializar o áudio
   useEffect(() => {
-    refAudio.current = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3");
+    refAudio.current = new Audio(
+      "https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"
+    );
     return () => {
       if (refAudio.current) {
         refAudio.current.pause();
@@ -66,23 +72,33 @@ const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
             setEstaRodando(false);
             // Tocar som de alerta
             if (refAudio.current) {
-              refAudio.current.play().catch(e => console.error("Erro ao tocar áudio:", e));
+              refAudio.current
+                .play()
+                .catch((e) => console.error("Erro ao tocar áudio:", e));
             }
-            
+
             // Configurar reset automático após 5 segundos
             refResetAutomatico.current = setTimeout(() => {
               setTempoRestante(tempoTotal);
             }, 5000);
-            
+
             return 0;
           }
           return anterior - 1;
         });
       }, 1000);
-      
-      // Minimizar automaticamente ao iniciar
-      if (estaExpandido) {
+
+      // Minimizar automaticamente ao iniciar, mas não bloqueia a expansão futura
+      if (estaExpandido && !refMinimizacaoAutomatica.current) {
         setEstaExpandido(false);
+
+        // Marcar que houve minimização automática recente
+        refMinimizacaoAutomatica.current = true;
+
+        // Resetar o flag após um curto período para permitir minimizações futuras
+        setTimeout(() => {
+          refMinimizacaoAutomatica.current = false;
+        }, 500);
       }
     } else if (refTemporizador.current) {
       clearInterval(refTemporizador.current);
@@ -96,35 +112,43 @@ const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
         clearTimeout(refResetAutomatico.current);
       }
     };
-  }, [estaRodando, tempoTotal, estaExpandido]);
+  }, [estaRodando, tempoTotal]); // Removido estaExpandido da dependência para evitar re-execução
 
   // Efeito para adicionar evento de clique global para minimizar
   useEffect(() => {
     const handleClickFora = (e) => {
-      if (refCronometro.current && 
-          !refCronometro.current.contains(e.target) && 
-          estaExpandido) {
+      if (
+        refCronometro.current &&
+        !refCronometro.current.contains(e.target) &&
+        estaExpandido &&
+        !arrastando
+      ) {
         setEstaExpandido(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickFora);
+    document.addEventListener("mousedown", handleClickFora);
+    document.addEventListener("touchstart", handleClickFora, { passive: true });
+
     return () => {
-      document.removeEventListener('mousedown', handleClickFora);
+      document.removeEventListener("mousedown", handleClickFora);
+      document.removeEventListener("touchstart", handleClickFora);
     };
-  }, [estaExpandido]);
+  }, [estaExpandido, arrastando]);
 
   // Formatar o tempo para exibição (MM:SS)
   const formatarTempo = (segundos) => {
     const minutos = Math.floor(segundos / 60);
     const segundosRestantes = segundos % 60;
-    return `${minutos.toString().padStart(2, "0")}:${segundosRestantes.toString().padStart(2, "0")}`;
+    return `${minutos.toString().padStart(2, "0")}:${segundosRestantes
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   // Manipuladores de eventos
   const handleIniciarPausar = (e) => {
     e.stopPropagation(); // Impedir propagação para não interferir com outros eventos
-    
+
     if (tempoRestante === 0) {
       // Se o temporizador estiver em zero, reinicie com o tempo configurado
       setTempoRestante(tempoTotal);
@@ -134,7 +158,7 @@ const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
 
   const handleReiniciar = (e) => {
     e.stopPropagation(); // Impedir propagação para não interferir com outros eventos
-    
+
     setEstaRodando(false);
     setTempoRestante(tempoTotal);
     if (refResetAutomatico.current) {
@@ -144,7 +168,7 @@ const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
 
   const handleAumentarTempo = (e) => {
     e.stopPropagation(); // Impedir propagação para não interferir com outros eventos
-    
+
     const novoTempo = tempoTotal + 30;
     setTempoTotal(novoTempo);
     if (!estaRodando) {
@@ -154,7 +178,7 @@ const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
 
   const handleDiminuirTempo = (e) => {
     e.stopPropagation(); // Impedir propagação para não interferir com outros eventos
-    
+
     if (tempoTotal > 30) {
       const novoTempo = tempoTotal - 30;
       setTempoTotal(novoTempo);
@@ -166,7 +190,7 @@ const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
 
   const handleFechar = (e) => {
     e.stopPropagation(); // Impedir propagação para não interferir com outros eventos
-    
+
     setEstaVisivel(false);
     if (onFechar) onFechar();
   };
@@ -176,22 +200,38 @@ const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
     setEstaExpandido(!estaExpandido);
   };
 
-  // Funções para arrastar o cronômetro
+  // Função específica para expandir o cronômetro - sempre funciona
+  const expandirCronometro = () => {
+    setEstaExpandido(true);
+  };
+
+  // Funções para arrastar o cronômetro - otimizadas para iOS
   const iniciarArrasto = (e) => {
     e.stopPropagation(); // Impedir propagação para não interferir com outros eventos
-    
+
     if (!estaExpandido) {
       setArrastando(true);
-      
-      // Calcular o offset do mouse em relação ao elemento
+      setMoveuSignificativamente(false);
+
+      // Registrar o tempo do toque para diferenciar clique de arrasto no iOS
+      setUltimoToque(Date.now());
+
+      // Calcular o offset do mouse/toque em relação ao elemento
       const rect = e.currentTarget.getBoundingClientRect();
-      setOffsetArrasto({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      });
-      
-      // Prevenir comportamento padrão para evitar problemas em dispositivos touch
-      e.preventDefault();
+
+      // Obter coordenadas do mouse ou toque
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+      if (clientX && clientY) {
+        setOffsetArrasto({
+          x: clientX - rect.left,
+          y: clientY - rect.top,
+        });
+
+        // Salvar posição inicial para detectar movimento
+        refPosicaoInicial.current = { x: clientX, y: clientY };
+      }
     }
   };
 
@@ -200,46 +240,44 @@ const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
       // Obter posição do mouse ou toque
       const clientX = e.clientX || (e.touches && e.touches[0].clientX);
       const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      
+
       if (clientX && clientY) {
         const novoX = clientX - offsetArrasto.x;
         const novoY = clientY - offsetArrasto.y;
-        
+
+        // Verificar se houve movimento significativo
+        const deltaX = Math.abs(clientX - refPosicaoInicial.current.x);
+        const deltaY = Math.abs(clientY - refPosicaoInicial.current.y);
+
+        if (deltaX > 5 || deltaY > 5) {
+          setMoveuSignificativamente(true);
+        }
+
         // Limitar dentro da janela
         const maxX = window.innerWidth - 64; // largura aproximada do cronômetro minimizado
         const maxY = window.innerHeight - 64; // altura aproximada do cronômetro minimizado
-        
+
         setPosicao({
           x: Math.max(0, Math.min(novoX, maxX)),
-          y: Math.max(0, Math.min(novoY, maxY))
+          y: Math.max(0, Math.min(novoY, maxY)),
         });
       }
-      
-      // Prevenir comportamento padrão para evitar problemas em dispositivos touch
-      e.preventDefault();
     }
   };
 
   const pararArrasto = (e) => {
     if (arrastando) {
-      setArrastando(false);
-      
-      // Se o movimento foi mínimo, considerar como um clique e expandir
-      const clientX = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
-      const clientY = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
-      
-      if (clientX && clientY) {
-        const deltaX = Math.abs(clientX - (posicao.x + offsetArrasto.x));
-        const deltaY = Math.abs(clientY - (posicao.y + offsetArrasto.y));
-        
-        // Se o movimento foi menor que 5px, considerar como um clique
-        if (deltaX < 5 && deltaY < 5) {
-          setEstaExpandido(true);
-        }
+      // Verificar se foi um clique (toque rápido) ou um arrasto
+      const agora = Date.now();
+      const duracaoToque = agora - ultimoToque;
+
+      // Se não houve movimento significativo e o toque foi curto, considerar como clique
+      if (!moveuSignificativamente && duracaoToque < 300) {
+        expandirCronometro();
       }
-      
-      // Prevenir comportamento padrão para evitar problemas em dispositivos touch
-      e.preventDefault();
+
+      setArrastando(false);
+      setMoveuSignificativamente(false);
     }
   };
 
@@ -249,34 +287,42 @@ const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
     const handleMouseUp = (e) => pararArrasto(e);
     const handleTouchMove = (e) => moverArrasto(e);
     const handleTouchEnd = (e) => pararArrasto(e);
-    
+
     if (arrastando) {
       // Mouse events
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      
-      // Touch events
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleTouchEnd);
-      document.addEventListener('touchcancel', handleTouchEnd);
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+
+      // Touch events - importante NÃO usar preventDefault para evitar erros
+      document.addEventListener("touchmove", handleTouchMove, {
+        passive: true,
+      });
+      document.addEventListener("touchend", handleTouchEnd);
+      document.addEventListener("touchcancel", handleTouchEnd);
     }
-    
+
     return () => {
       // Mouse events
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+
       // Touch events
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-      document.removeEventListener('touchcancel', handleTouchEnd);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
+      document.removeEventListener("touchcancel", handleTouchEnd);
     };
-  }, [arrastando, posicao, offsetArrasto]);
+  }, [
+    arrastando,
+    posicao,
+    offsetArrasto,
+    ultimoToque,
+    moveuSignificativamente,
+  ]);
 
   // Calcular a cor de fundo com base no tempo restante (vermelho quando próximo de zero)
   const obterCorFundo = () => {
     const porcentagem = (tempoRestante / tempoTotal) * 100;
-    
+
     if (porcentagem <= 20) return "bg-red-500";
     if (porcentagem <= 50) return "bg-yellow-500";
     return "bg-green-500";
@@ -285,83 +331,85 @@ const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
   if (!estaVisivel) return null;
 
   // Estilo para posicionamento quando arrastável
-  const estiloArrasto = !estaExpandido ? {
-    position: 'fixed',
-    top: `${posicao.y}px`,
-    left: `${posicao.x}px`,
-    zIndex: 50,
-    cursor: arrastando ? 'grabbing' : 'grab',
-    touchAction: 'none' // Importante para dispositivos touch
-  } : {};
+  const estiloArrasto = !estaExpandido
+    ? {
+        position: "fixed",
+        top: `${posicao.y}px`,
+        left: `${posicao.x}px`,
+        zIndex: 50,
+        cursor: arrastando ? "grabbing" : "grab",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+        KhtmlUserSelect: "none",
+        MozUserSelect: "none",
+        msUserSelect: "none",
+        userSelect: "none",
+        touchAction: "none", // Importante para dispositivos touch
+      }
+    : {};
 
   return (
-    <div 
+    <div
       ref={refCronometro}
-      className={estaExpandido ? "fixed top-4 right-4 z-50 flex flex-col items-end" : ""}
+      className={
+        estaExpandido ? "fixed top-32 right-4 z-50 flex flex-col items-end" : ""
+      }
       style={estiloArrasto}
-      onMouseDown={!estaExpandido ? iniciarArrasto : undefined}
-      onTouchStart={!estaExpandido ? iniciarArrasto : undefined}
     >
-      <div className={`bg-slate-800 rounded-xl shadow-lg overflow-hidden transition-all duration-300 ${
-        estaExpandido ? "w-64" : "w-16"
-      }`}>
-        {/* Cabeçalho */}
-        <div className="flex justify-between items-center p-3 bg-slate-700">
-          <div className="flex items-center">
-            {!estaExpandido && <Move size={16} className="text-gray-400 mr-1" />}
-            <Timer size={18} className="text-blue-400 mr-2" />
-            {estaExpandido && (
-              <h3 className="text-white font-medium text-sm">Cronômetro de Descanso</h3>
-            )}
-          </div>
-          <div className="flex items-center">
-            <button
-              onClick={handleToggleExpandir}
-              className="text-gray-400 hover:text-white p-1 rounded-full transition-colors"
-            >
-              {estaExpandido ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-            </button>
-            {estaExpandido && (
-              <button
-                onClick={handleFechar}
-                className="text-gray-400 hover:text-white p-1 rounded-full transition-colors ml-1"
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Corpo do temporizador */}
+      <div
+        className={`bg-slate-800 rounded-xl shadow-lg overflow-hidden transition-all duration-300 ${
+          estaExpandido ? "w-64" : "w-16"
+        }`}
+      >
         {estaExpandido ? (
           <>
+            {/* Cabeçalho */}
+            <div className="flex justify-between items-center p-3 bg-slate-700 cronometro-cabecalho">
+              <div className="flex items-center">
+                <Timer size={18} className="text-blue-400 mr-2" />
+                <h3 className="text-white font-medium text-sm">
+                  Cronômetro de Descanso
+                </h3>
+              </div>
+              <div className="flex items-center">
+                <button
+                  onClick={handleToggleExpandir}
+                  className="text-gray-400 hover:text-white p-1 rounded-full transition-colors"
+                >
+                  <ChevronDown size={16} />
+                </button>
+                <button
+                  onClick={handleFechar}
+                  className="text-gray-400 hover:text-white p-1 rounded-full transition-colors ml-1"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
             {/* Display do tempo */}
-            <div className={`flex justify-center items-center py-6 ${obterCorFundo()} transition-colors ${tempoRestante <= 10 ? 'timer-pulse' : ''}`}>
+            <div
+              className={`flex justify-center items-center py-6 ${obterCorFundo()} transition-colors ${
+                tempoRestante <= 10 ? "timer-pulse" : ""
+              }`}
+            >
               <span className="text-white text-3xl font-bold">
                 {formatarTempo(tempoRestante)}
               </span>
             </div>
 
-            {/* Controles de ajuste de tempo */}
-            <div className="flex justify-between items-center p-3 bg-slate-700">
+            {/* Controles de ajuste de tempo - Simplificado sem texto */}
+            <div className="flex justify-center items-center gap-4 p-3 bg-slate-700">
               <button
                 onClick={handleDiminuirTempo}
-                className="bg-slate-600 hover:bg-slate-500 text-white p-2 rounded-lg transition-colors"
+                className="flex justify-center items-center bg-slate-600 hover:bg-slate-500 w-full text-white p-2 rounded-lg transition-colors"
                 disabled={tempoTotal <= 30}
               >
                 <MinusCircle size={20} />
               </button>
-              
-              <div className="text-center">
-                <span className="text-white text-sm font-medium">Ajustar Tempo</span>
-                <div className="text-gray-300 text-xs mt-1">
-                  {formatarTempo(tempoTotal)} (±30s)
-                </div>
-              </div>
-              
               <button
                 onClick={handleAumentarTempo}
-                className="bg-slate-600 hover:bg-slate-500 text-white p-2 rounded-lg transition-colors"
+                className="flex justify-center items-center bg-slate-600 hover:bg-slate-500 w-full text-white p-2 rounded-lg transition-colors"
               >
                 <PlusCircle size={20} />
               </button>
@@ -372,10 +420,16 @@ const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
               <button
                 onClick={handleIniciarPausar}
                 className={`flex items-center justify-center rounded-lg px-4 py-2 text-white transition-colors ${
-                  estaRodando ? "bg-yellow-500 hover:bg-yellow-600" : "bg-green-500 hover:bg-green-600"
+                  estaRodando
+                    ? "bg-yellow-500 hover:bg-yellow-600"
+                    : "bg-green-500 hover:bg-green-600"
                 }`}
               >
-                {estaRodando ? <Pause size={16} className="mr-1" /> : <Play size={16} className="mr-1" />}
+                {estaRodando ? (
+                  <Pause size={16} className="mr-1" />
+                ) : (
+                  <Play size={16} className="mr-1" />
+                )}
                 {estaRodando ? "Pausar" : "Iniciar"}
               </button>
               <button
@@ -388,14 +442,26 @@ const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
             </div>
           </>
         ) : (
-          // Versão minimizada
-          <div 
-            className={`flex justify-center items-center p-3 ${obterCorFundo()} transition-colors ${tempoRestante <= 10 ? 'timer-pulse' : ''}`}
-            onClick={handleToggleExpandir}
-          >
-            <span className="text-white text-sm font-bold">
-              {formatarTempo(tempoRestante)}
-            </span>
+          // Versão minimizada redesenhada - mais elegante
+          <div className="flex flex-col">
+            <div
+              className="flex items-center justify-between px-2 py-1 bg-slate-700"
+              onMouseDown={iniciarArrasto}
+              onTouchStart={iniciarArrasto}
+            >
+              <Move size={18} className="text-gray-400" />
+              <Timer size={21} className="text-blue-400" />
+            </div>
+            <button
+              className={`w-full flex justify-center items-center p-3 ${obterCorFundo()} transition-colors ${
+                tempoRestante <= 10 ? "timer-pulse" : ""
+              } focus:outline-none`}
+              onClick={expandirCronometro}
+            >
+              <span className="text-white text-base font-bold">
+                {formatarTempo(tempoRestante)}
+              </span>
+            </button>
           </div>
         )}
       </div>
@@ -618,14 +684,14 @@ const RegistrarCarga = () => {
   return (
     <PageWrapper>
       {/* Componente do cronômetro de descanso integrado diretamente */}
-      <CronometroDescanso 
-        estaVisivel={cronometroVisivel} 
-        setEstaVisivel={setCronometroVisivel} 
-        onFechar={() => setCronometroVisivel(false)} 
+      <CronometroDescanso
+        estaVisivel={cronometroVisivel}
+        setEstaVisivel={setCronometroVisivel}
+        onFechar={() => setCronometroVisivel(false)}
       />
-      
+
       <div
-        className={`pb-32 transform transition-all duration-700 ease-out ${
+        className={`p-1 max-w-screen-md mx-auto space-y-6 transform transition-all duration-700 ease-out ${
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
         }`}
       >
@@ -663,7 +729,7 @@ const RegistrarCarga = () => {
               <Dumbbell size={20} className="mr-2" />
               Adicionar Exercício
             </button>
-            
+
             {!cronometroVisivel && (
               <button
                 className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white p-3.5 flex items-center justify-center transition-colors sm:border-l border-indigo-600"
@@ -890,6 +956,31 @@ const RegistrarCarga = () => {
           </div>
         )}
       </div>
+      <style>
+        {`
+          @keyframes pulse {
+            0% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.7;
+            }
+            100% {
+              opacity: 1;
+            }
+          }
+
+          .timer-pulse {
+            animation: pulse 1s infinite;
+          }
+
+          @supports (-webkit-touch-callout: none) {
+            .cronometro-minimizado {
+              -webkit-tap-highlight-color: transparent;
+            }
+          }
+        `}
+      </style>
     </PageWrapper>
   );
 };
