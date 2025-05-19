@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { getUserData, saveUserData } from "../utils/storage"; // Certifique-se que saveUserData está exportado e importado
-import { Trash2 } from "lucide-react"; // Ícone para o botão de limpar
+import { getUserData, saveUserData } from "../utils/storage";
+import {
+  Trash2,
+  History,
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  Calendar,
+  Dumbbell,
+  Tag,
+} from "lucide-react";
+import PageWrapper from "../components/PageWrapper";
 
 const Historico = () => {
   const { user } = useAuth();
@@ -9,6 +19,18 @@ const Historico = () => {
   const [expandedDates, setExpandedDates] = useState({});
   const [grupoSelecionado, setGrupoSelecionado] = useState("Todos");
   const [tituloSelecionado, setTituloSelecionado] = useState("Todos");
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Animação de entrada
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, []);
 
   const carregarHistorico = () => {
     if (!user?.uid) {
@@ -28,7 +50,8 @@ const Historico = () => {
     const agrupadosOrdenados = Object.fromEntries(
       Object.entries(agrupados).sort(
         ([dataA], [dataB]) =>
-          new Date(dataB.split("/").reverse().join("-")) - new Date(dataA.split("/").reverse().join("-"))
+          new Date(dataB.split("/").reverse().join("-")) -
+          new Date(dataA.split("/").reverse().join("-"))
       )
     );
     setRegistrosAgrupados(agrupadosOrdenados);
@@ -102,103 +125,199 @@ const Historico = () => {
   );
 
   return (
-    <div className="p-4 pb-24 sm:p-6 md:p-8 lg:p-10 max-w-screen-md mx-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-bold text-black">Histórico de Treinos</h1>
-        {Object.keys(registrosAgrupados).length > 0 && (
-          <button
-            onClick={handleLimparHistorico}
-            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 flex items-center"
-            title="Limpar todo o histórico de treinos"
-          >
-            <Trash2 size={16} className="mr-1" /> Limpar Histórico
-          </button>
-        )}
-      </div>
-
-      <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <select
-          value={grupoSelecionado}
-          onChange={(e) => setGrupoSelecionado(e.target.value)}
-          className="border rounded px-3 py-2 w-full"
-          disabled={gruposDisponiveis.length === 0}
-        >
-          <option value="Todos">Todos os grupos musculares</option>
-          {gruposDisponiveis.map((grupo) => (
-            <option key={grupo} value={grupo}>
-              {grupo}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={tituloSelecionado}
-          onChange={(e) => setTituloSelecionado(e.target.value)}
-          className="border rounded px-3 py-2 w-full"
-          disabled={titulosDisponiveis.length === 0}
-        >
-          <option value="Todos">Todos os títulos de treino</option>
-          {titulosDisponiveis.map((titulo) => (
-            <option key={titulo} value={titulo}>
-              {titulo}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {Object.keys(registrosFiltrados).length === 0 ? (
-        <p className="text-gray-500 text-center mt-10">
-          Nenhum registro de treino encontrado{ (grupoSelecionado !== "Todos" || tituloSelecionado !== "Todos") && " para os filtros selecionados" }.
-        </p>
-      ) : (
-        Object.entries(registrosFiltrados).map(([data, registros]) => (
-          <div key={data} className="mb-6 border rounded p-4 bg-gray-50 shadow-md">
-            <div
-              className="cursor-pointer flex justify-between items-center py-2"
-              onClick={() => toggleExpand(data)}
+    <PageWrapper>
+      <div
+        className={`pb-32 transform transition-all duration-700 ease-out ${
+          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+        }`}
+      >
+        <div className="flex justify-between items-center mb-4 m-4">
+          <div className="flex items-center">
+            <History size={22} className="text-blue-500 mr-2" />
+            <h1 className="text-xl font-bold text-white">
+              Histórico de Treinos
+            </h1>
+          </div>
+          {Object.keys(registrosAgrupados).length > 0 && (
+            <button
+              onClick={handleLimparHistorico}
+              className="bg-red-500 text-white px-3 py-1.5 rounded-lg flex items-center text-sm hover:bg-red-600 transition-colors"
+              title="Limpar todo o histórico de treinos"
             >
-              <h2 className="text-md font-semibold text-gray-800">
-                {data} ({getDiaSemana(data)}) - {registros[0]?.tituloTreino || "Treino"} ({registros.length} {registros.length === 1 ? "exercício" : "exercícios"})
-              </h2>
-              <span className="text-blue-600 text-sm font-medium">
-                {expandedDates[data] ? "Recolher ▲" : "Expandir ▼"}
-              </span>
+              <Trash2 size={16} className="mr-1" /> Limpar Histórico
+            </button>
+          )}
+        </div>
+
+        <div className="bg-slate-800 rounded-xl p-4 mb-4 m-4">
+          <div className="flex items-center mb-2">
+            <Filter size={16} className="text-blue-400 mr-2" />
+            <p className="text-sm font-medium text-gray-300">
+              Filtrar histórico:
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="relative">
+              <select
+                value={grupoSelecionado}
+                onChange={(e) => setGrupoSelecionado(e.target.value)}
+                className="w-full bg-slate-700 text-white border-none rounded-lg px-3 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={gruposDisponiveis.length === 0}
+              >
+                <option value="Todos">Todos os grupos musculares</option>
+                {gruposDisponiveis.map((grupo) => (
+                  <option key={grupo} value={grupo}>
+                    {grupo}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <ChevronDown size={16} className="text-gray-400" />
+              </div>
             </div>
 
-            {expandedDates[data] && (
-              <div className="mt-3 pt-3 border-t border-gray-200 space-y-3">
-                {registros.map((registro) => (
+            <div className="relative">
+              <select
+                value={tituloSelecionado}
+                onChange={(e) => setTituloSelecionado(e.target.value)}
+                className="w-full bg-slate-700 text-white border-none rounded-lg px-3 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={titulosDisponiveis.length === 0}
+              >
+                <option value="Todos">Todos os títulos de treino</option>
+                {titulosDisponiveis.map((titulo) => (
+                  <option key={titulo} value={titulo}>
+                    {titulo}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <ChevronDown size={16} className="text-gray-400" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {Object.keys(registrosFiltrados).length === 0 ? (
+          <div className="bg-slate-800 rounded-xl p-8 flex flex-col items-center justify-center text-center m-4 animate-fadeIn">
+            <div className="bg-slate-700 p-4 rounded-full mb-3">
+              <History size={32} className="text-gray-400" />
+            </div>
+            <p className="text-gray-300 text-lg mb-1">
+              Nenhum registro de treino encontrado
+            </p>
+            <p className="text-gray-400 text-sm">
+              {grupoSelecionado !== "Todos" || tituloSelecionado !== "Todos"
+                ? "Tente mudar os filtros selecionados"
+                : "Registre seus treinos para começar a construir seu histórico"}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4 m-4">
+            {Object.entries(registrosFiltrados).map(
+              ([data, registros], dateIndex) => (
+                <div
+                  key={data}
+                  className="bg-slate-800 rounded-xl overflow-hidden shadow-lg animate-fadeIn"
+                  style={{ animationDelay: `${dateIndex * 100}ms` }}
+                >
                   <div
-                    key={registro.id}
-                    className="bg-white rounded-lg shadow p-3 border border-gray-200"
+                    className="cursor-pointer flex justify-between items-center p-4 hover:bg-slate-700/50 transition-colors"
+                    onClick={() => toggleExpand(data)}
                   >
-                    <p className="font-semibold text-gray-700">{registro.exercicio}</p>
-                    <p className="text-xs text-gray-500">
-                      Grupo: {registro.grupoMuscular}
-                    </p>
-                    {registro.tituloTreino && (
-                        <p className="text-xs text-gray-500">
-                            Título: {registro.tituloTreino}
+                    <div className="flex items-center">
+                      <div className="bg-blue-500/20 p-2 rounded-lg mr-3">
+                        <Calendar size={20} className="text-blue-400" />
+                      </div>
+                      <div>
+                        <h2 className="text-white font-semibold">
+                          {data}{" "}
+                          <span className="text-gray-400 font-normal">
+                            ({getDiaSemana(data)})
+                          </span>
+                        </h2>
+                        <p className="text-sm text-gray-400">
+                          {registros[0]?.tituloTreino || "Treino"} •{" "}
+                          {registros.length}{" "}
+                          {registros.length === 1 ? "exercício" : "exercícios"}
                         </p>
-                    )}
-                    <div className="mt-2 space-y-1">
-                      {registro.series.map((serie, index) => (
-                        <p key={index} className="text-sm text-gray-600">
-                          Série {index + 1}: {serie.carga || "0"}kg x{" "}
-                          {serie.repeticoes || "0"} repetições
-                        </p>
-                      ))}
+                      </div>
+                    </div>
+                    <div className="bg-slate-700 rounded-lg p-1.5">
+                      {expandedDates[data] ? (
+                        <ChevronUp size={18} className="text-gray-400" />
+                      ) : (
+                        <ChevronDown size={18} className="text-gray-400" />
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  {expandedDates[data] && (
+                    <div className="px-4 pb-4 space-y-3 animate-fadeIn">
+                      {registros.map((registro, regIndex) => (
+                        <div
+                          key={registro.id}
+                          className="bg-slate-700/50 rounded-lg p-4 border border-slate-600/30"
+                          style={{ animationDelay: `${regIndex * 50}ms` }}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center">
+                              <Dumbbell
+                                size={16}
+                                className="text-blue-400 mr-2"
+                              />
+                              <h3 className="font-medium text-white">
+                                {registro.exercicio}
+                              </h3>
+                            </div>
+                            <span className="text-xs text-gray-400 bg-slate-600/50 px-2 py-0.5 rounded-full">
+                              {registro.grupoMuscular}
+                            </span>
+                          </div>
+
+                          {registro.tituloTreino && (
+                            <div className="flex items-center mb-3 text-xs text-gray-400">
+                              <Tag size={12} className="mr-1" />
+                              {registro.tituloTreino}
+                            </div>
+                          )}
+
+                          <div className="space-y-2 mt-3">
+                            {registro.series.map((serie, index) => (
+                              <div
+                                key={index}
+                                className="grid grid-cols-12 gap-2 items-center bg-slate-800/50 rounded-lg p-2"
+                              >
+                                <span className="col-span-1 text-xs font-medium text-gray-400 text-center">
+                                  {index + 1}
+                                </span>
+                                <div className="col-span-5 text-sm text-white">
+                                  <span className="text-gray-400 mr-1">
+                                    Carga:
+                                  </span>{" "}
+                                  {serie.carga || "0"}kg
+                                </div>
+                                <div className="col-span-6 text-sm text-white">
+                                  <span className="text-gray-400 mr-1">
+                                    Reps:
+                                  </span>{" "}
+                                  {serie.repeticoes || "0"}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
             )}
           </div>
-        ))
-      )}
-    </div>
+        )}
+      </div>
+    </PageWrapper>
   );
 };
 
 export default Historico;
-

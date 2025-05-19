@@ -2,7 +2,21 @@ import { useState, useEffect } from "react";
 import { exercicios as exerciciosDaBiblioteca } from "./Biblioteca";
 import { useAuth } from "../context/AuthContext";
 import { getUserData, saveUserData } from "../utils/storage";
-import { XCircle } from "lucide-react"; // Ícone para limpar registro
+import {
+  XCircle,
+  Plus,
+  Trash2,
+  Dumbbell,
+  Save,
+  Filter,
+  X,
+  ChevronRight,
+  BarChart3,
+  Circle,
+  CircleArrowRight,
+  CircleArrowDown,
+} from "lucide-react";
+import PageWrapper from "../components/PageWrapper";
 
 const CHAVE_REGISTRO_EM_ANDAMENTO = "gymtracker_registro_em_andamento";
 
@@ -10,12 +24,24 @@ const RegistrarCarga = () => {
   const { user } = useAuth();
   const [modalAberto, setModalAberto] = useState(false);
   const [exercicios, setExercicios] = useState([]);
-  
+  const [isVisible, setIsVisible] = useState(false);
+
   // Estados que serão persistidos
   const [tituloTreino, setTituloTreino] = useState("");
   const [exerciciosSelecionados, setExerciciosSelecionados] = useState([]);
-  
+
   const [grupoSelecionadoModal, setGrupoSelecionadoModal] = useState("Todos"); // Estado para o filtro do modal
+
+  // Animação de entrada
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, []);
 
   // Carregar dados da biblioteca de exercícios
   useEffect(() => {
@@ -91,7 +117,10 @@ const RegistrarCarga = () => {
       prev.map((exercicio, i) => {
         if (i !== exIndex) return exercicio;
         const seriesExistentes = exercicio.series;
-        const ultimaSerie = seriesExistentes.length > 0 ? seriesExistentes[seriesExistentes.length - 1] : { carga: "", repeticoes: "" };
+        const ultimaSerie =
+          seriesExistentes.length > 0
+            ? seriesExistentes[seriesExistentes.length - 1]
+            : { carga: "", repeticoes: "" };
         const novaSerie = { ...ultimaSerie };
         return {
           ...exercicio,
@@ -104,15 +133,17 @@ const RegistrarCarga = () => {
   const handleRemoverExercicio = (exIndex) => {
     setExerciciosSelecionados((prev) => prev.filter((_, i) => i !== exIndex));
   };
-  
+
   const handleRemoverSerie = (exIndex, serieIndex) => {
     setExerciciosSelecionados((prev) =>
       prev.map((exercicio, i) => {
         if (i === exIndex) {
           // Não permite remover a última série, apenas limpa ela ou informa o usuário
           if (exercicio.series.length === 1) {
-            alert("Cada exercício deve ter pelo menos uma série. Você pode alterar os valores ou remover o exercício inteiro.");
-            return exercicio; 
+            alert(
+              "Cada exercício deve ter pelo menos uma série. Você pode alterar os valores ou remover o exercício inteiro."
+            );
+            return exercicio;
           }
           return {
             ...exercicio,
@@ -125,24 +156,28 @@ const RegistrarCarga = () => {
   };
 
   const limparRegistroAtual = () => {
-    setTituloTreino("");
-    setExerciciosSelecionados([]);
-    if (user?.uid) {
-      localStorage.removeItem(`${CHAVE_REGISTRO_EM_ANDAMENTO}_${user.uid}`);
+    if (window.confirm("Tem certeza que deseja limpar o treino atual?")) {
+      setTituloTreino("");
+      setExerciciosSelecionados([]);
+      if (user?.uid) {
+        localStorage.removeItem(`${CHAVE_REGISTRO_EM_ANDAMENTO}_${user.uid}`);
+      }
     }
-    alert("Registro atual limpo.");
   };
 
   const handleSalvar = () => {
     if (!user?.uid) return alert("Faça login para salvar.");
     if (!tituloTreino.trim()) return alert("Digite um título para o treino.");
-    if (exerciciosSelecionados.length === 0) return alert("Adicione ao menos um exercício.");
+    if (exerciciosSelecionados.length === 0)
+      return alert("Adicione ao menos um exercício.");
 
     // Validação de séries preenchidas
     for (const ex of exerciciosSelecionados) {
       for (const serie of ex.series) {
         if (serie.carga.trim() === "" || serie.repeticoes.trim() === "") {
-          alert(`Preencha todas as cargas e repetições para o exercício: ${ex.nome}`);
+          alert(
+            `Preencha todas as cargas e repetições para o exercício: ${ex.nome}`
+          );
           return;
         }
       }
@@ -157,14 +192,20 @@ const RegistrarCarga = () => {
       exercicio: ex.nome,
       grupoMuscular: ex.grupoMuscular,
       data: dataAtual,
-      series: ex.series.map(s => ({ carga: parseFloat(s.carga) || 0, repeticoes: parseInt(s.repeticoes) || 0 })),
+      series: ex.series.map((s) => ({
+        carga: parseFloat(s.carga) || 0,
+        repeticoes: parseInt(s.repeticoes) || 0,
+      })),
     }));
 
-    saveUserData("gymtracker_cargas", user.uid, [...registrosSalvos, ...novosRegistros]);
-    
+    saveUserData("gymtracker_cargas", user.uid, [
+      ...registrosSalvos,
+      ...novosRegistros,
+    ]);
+
     // Limpar localStorage do registro em andamento
     localStorage.removeItem(`${CHAVE_REGISTRO_EM_ANDAMENTO}_${user.uid}`);
-    
+
     alert("Treino salvo com sucesso!");
     setTituloTreino("");
     setExerciciosSelecionados([]);
@@ -180,166 +221,274 @@ const RegistrarCarga = () => {
       ? exercicios
       : exercicios.filter((e) => e.grupoMuscular === grupoSelecionadoModal);
 
-  const exerciciosAgrupadosModal = exerciciosFiltradosModal.reduce((acc, exercicio) => {
-    const grupo = exercicio.grupoMuscular;
-    if (!acc[grupo]) acc[grupo] = [];
-    acc[grupo].push(exercicio);
-    return acc;
-  }, {});
+  const exerciciosAgrupadosModal = exerciciosFiltradosModal.reduce(
+    (acc, exercicio) => {
+      const grupo = exercicio.grupoMuscular;
+      if (!acc[grupo]) acc[grupo] = [];
+      acc[grupo].push(exercicio);
+      return acc;
+    },
+    {}
+  );
 
   return (
-    <div className="p-4 pb-24 sm:p-6 md:p-8 lg:p-10 max-w-screen-md mx-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-bold">Registrar Carga</h1>
-        {(tituloTreino.trim() !== "" || exerciciosSelecionados.length > 0) && (
-          <button
-            onClick={limparRegistroAtual}
-            className="text-red-500 hover:text-red-700 flex items-center text-sm"
-            title="Limpar treino atual"
-          >
-            <XCircle size={18} className="mr-1" /> Limpar Atual
-          </button>
-        )}
-      </div>
-      <input
-        type="text"
-        placeholder="Título do treino (ex: Treino A - Peito e Tríceps)"
-        value={tituloTreino}
-        onChange={(e) => setTituloTreino(e.target.value)}
-        className="w-full p-2 border rounded mb-4"
-      />
-
-      <button
-        className="bg-blue-600 text-white px-4 py-2 rounded mb-4 w-full sm:w-auto"
-        onClick={() => setModalAberto(true)}
+    <PageWrapper>
+      <div
+        className={`pb-32 transform transition-all duration-700 ease-out ${
+          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+        }`}
       >
-        Adicionar Exercício
-      </button>
-
-      {exerciciosSelecionados.length === 0 && (
-        <p className="text-gray-500 text-center my-6">Nenhum exercício adicionado ainda.</p>
-      )}
-
-      {exerciciosSelecionados.map((ex, exIndex) => (
-        <div key={ex.id} className="mb-6 p-4 bg-gray-50 rounded-lg shadow-md border">
-          <div className="flex justify-between items-center mb-3">
-            <div>
-              <p className="font-bold text-gray-800">{ex.nome}</p>
-              <p className="text-sm text-gray-600">{ex.grupoMuscular}</p>
-            </div>
-            <button
-              onClick={() => handleRemoverExercicio(exIndex)}
-              className="text-red-500 hover:text-red-700 text-sm p-1"
-            >
-              Remover Exercício
-            </button>
+        <div className="flex justify-between items-center mb-4 ">
+          <div className="flex items-center m-4">
+            <BarChart3 size={22} className="text-blue-500 mr-2" />
+            <h1 className="text-xl font-bold text-white">Registrar Carga</h1>
           </div>
+          {(tituloTreino.trim() !== "" ||
+            exerciciosSelecionados.length > 0) && (
+            <button
+              onClick={limparRegistroAtual}
+              className="bg-red-500 text-white px-3 m-4 py-1.5 rounded-lg flex items-center text-sm hover:bg-red-600 transition-colors"
+              title="Limpar treino atual"
+            >
+              <XCircle size={16} className="mr-1" /> Limpar Atual
+            </button>
+          )}
+        </div>
 
-          {ex.series.map((serie, serieIndex) => (
-            <div key={serieIndex} className="grid grid-cols-12 gap-2 mb-2 items-center">
-              <span className="col-span-1 text-sm text-gray-600 text-right">{serieIndex + 1}°</span>
-              <div className="col-span-5">
-                <input
-                  type="number"
-                  placeholder="Carga (kg)"
-                  className="border rounded px-3 py-2 w-full text-sm"
-                  value={serie.carga}
-                  onChange={(e) =>
-                    handleAlterarSerie(exIndex, serieIndex, "carga", e.target.value)
-                  }
-                />
-              </div>
-              <div className="col-span-5">
-                <input
-                  type="number"
-                  placeholder="Reps"
-                  className="border rounded px-3 py-2 w-full text-sm"
-                  value={serie.repeticoes}
-                  onChange={(e) =>
-                    handleAlterarSerie(exIndex, serieIndex, "repeticoes", e.target.value)
-                  }
-                />
-              </div>
-              <div className="col-span-1 flex justify-center">
-                {ex.series.length > 1 && (
-                    <button 
-                        onClick={() => handleRemoverSerie(exIndex, serieIndex)}
-                        className="text-red-400 hover:text-red-600 p-1"
-                        title="Remover esta série"
-                    >
-                        <XCircle size={16}/>
-                    </button>
-                )}
-              </div>
-            </div>
-          ))}
+        <div className="bg-slate-800 rounded-xl overflow-hidden mb-4 m-4">
+          <input
+            type="text"
+            placeholder="Título do treino (ex: Treino A - Peito e Tríceps)"
+            value={tituloTreino}
+            onChange={(e) => setTituloTreino(e.target.value)}
+            className="w-full p-3.5 bg-slate-700 text-white border-none focus:outline-none"
+          />
 
           <button
-            onClick={() => handleAdicionarSerie(exIndex)}
-            className="text-blue-500 hover:text-blue-700 text-sm underline mt-1"
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white p-3.5 flex items-center justify-center transition-colors"
+            onClick={() => setModalAberto(true)}
           >
-            + Adicionar Série
+            <Dumbbell size={20} className="mr-2" />
+            Adicionar Exercício
           </button>
         </div>
-      ))}
 
-      {exerciciosSelecionados.length > 0 && (
-        <button
-          onClick={handleSalvar}
-          className="bg-green-600 text-white px-4 py-2 rounded w-full mt-6"
-        >
-          Salvar Treino
-        </button>
-      )}
-
-      {modalAberto && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50 pt-10 sm:pt-20 px-4">
-          <div className="bg-white rounded-xl p-5 sm:p-6 w-full max-w-lg shadow-xl max-h-[85vh] flex flex-col">
-            <h2 className="text-lg font-bold mb-4">Escolha um Exercício</h2>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Filtrar por grupo muscular:
-              </label>
-              <select
-                value={grupoSelecionadoModal} // Usar estado do modal
-                onChange={(e) => setGrupoSelecionadoModal(e.target.value)} // Atualizar estado do modal
-                className="w-full border rounded px-3 py-2 bg-white"
-              >
-                {gruposDisponiveis.map((grupo) => (
-                  <option key={grupo} value={grupo}>
-                    {grupo}
-                  </option>
-                ))}
-              </select>
+        {exerciciosSelecionados.length === 0 && (
+          <div className="bg-slate-800 rounded-xl p-8 flex flex-col items-center justify-center text-center m-4">
+            <div className="bg-slate-700 p-4 rounded-full mb-3">
+              <Dumbbell size={32} className="text-gray-400" />
             </div>
-            <div className="overflow-y-auto flex-grow pr-2">
-              {Object.entries(exerciciosAgrupadosModal).map(([grupo, lista]) => (
-                <div key={grupo} className="mb-4">
-                  <h3 className="text-md font-semibold text-gray-700 mb-2 sticky top-0 bg-white py-1">{grupo}</h3>
-                  {lista.map((exercicio) => (
-                    <div
-                      key={exercicio.id}
-                      onClick={() => handleAdicionarExercicio(exercicio)}
-                      className="p-3 border rounded cursor-pointer hover:bg-blue-50 mb-2 transition-colors duration-150"
-                    >
-                      <p className="font-medium text-gray-800">{exercicio.nome}</p>
-                    </div>
-                  ))}
+            <p className="text-gray-300 text-lg mb-1">
+              Nenhum exercício adicionado ainda.
+            </p>
+            <p className="text-gray-400 text-sm">
+              Clique em "Adicionar Exercício" para começar seu treino.
+            </p>
+          </div>
+        )}
+
+        {exerciciosSelecionados.map((ex, exIndex) => (
+          <div
+            key={ex.id}
+            className=" bg-slate-800 rounded-xl mb-4 overflow-hidden animate-fadeIn m-4"
+            style={{ animationDelay: `${exIndex * 100}ms` }}
+          >
+            <div className="flex justify-between items-center p-4">
+              <div>
+                <p className="font-bold text-white text-lg">{ex.nome}</p>
+                <p className="text-sm text-gray-400 bg-slate-700 px-2 py-0.5 rounded-full inline-block mt-1">
+                  {ex.grupoMuscular}
+                </p>
+              </div>
+              <button
+                onClick={() => handleRemoverExercicio(exIndex)}
+                className="bg-slate-900/50 hover:bg-red-500/20 text-red-400 hover:text-red-300 p-2 rounded-lg transition-colors"
+                title="Remover Exercício"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+
+            <div className="px-4 pb-2">
+              <div className="grid grid-cols-12 gap-2 items-center text-sm font-medium text-gray-400 px-1 mb-2">
+                <span className="col-span-1 text-center">Nº</span>
+                <span className="col-span-5 pl-2">Carga (kg)</span>
+                <span className="col-span-5 pl-2">Repetições</span>
+                <span className="col-span-1"></span>
+              </div>
+
+              {ex.series.map((serie, serieIndex) => (
+                <div
+                  key={serieIndex}
+                  className="grid grid-cols-12 gap-2 items-center mb-2 animate-fadeIn"
+                  style={{ animationDelay: `${serieIndex * 50}ms` }}
+                >
+                  <span className="col-span-1 text-sm font-medium text-gray-400 text-center">
+                    {serieIndex + 1}
+                  </span>
+                  <div className="col-span-5">
+                    <input
+                      type="number"
+                      placeholder="Carga (kg)"
+                      className="w-full bg-slate-700 text-white border-none rounded-md p-2.5 text-sm focus:outline-none"
+                      value={serie.carga}
+                      onChange={(e) =>
+                        handleAlterarSerie(
+                          exIndex,
+                          serieIndex,
+                          "carga",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="col-span-5">
+                    <input
+                      type="number"
+                      placeholder="Reps"
+                      className="w-full bg-slate-700 text-white border-none rounded-md p-2.5 text-sm focus:outline-none"
+                      value={serie.repeticoes}
+                      onChange={(e) =>
+                        handleAlterarSerie(
+                          exIndex,
+                          serieIndex,
+                          "repeticoes",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="col-span-1 flex justify-center">
+                    {ex.series.length > 1 && (
+                      <button
+                        onClick={() => handleRemoverSerie(exIndex, serieIndex)}
+                        className="bg-slate-900/50 text-red-400 hover:text-red-300 p-1 rounded-full transition-colors"
+                        title="Remover esta série"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
+
             <button
-              onClick={() => setModalAberto(false)}
-              className="mt-4 text-sm text-blue-600 hover:text-blue-800 underline self-start"
+              onClick={() => handleAdicionarSerie(exIndex)}
+              className="w-full bg-blue-900/30 hover:bg-blue-900/50 text-blue-300 py-3 flex items-center justify-center transition-colors"
             >
-              Fechar
+              <Plus size={16} className="mr-1" /> Adicionar Série
             </button>
           </div>
-        </div>
-      )}
-    </div>
+        ))}
+
+        {exerciciosSelecionados.length > 0 && (
+          <div className="m-4">
+            <button
+              onClick={handleSalvar}
+              className="bg-green-500 hover:bg-green-600 text-white p-3.5 rounded-xl flex items-center justify-center transition-colors w-full"
+            >
+              <Save size={18} className="mr-2" />
+              Salvar Treino
+            </button>
+          </div>
+        )}
+
+        {modalAberto && (
+          <div className="fixed m-2 inset-0 flex flex-col z-50 animate-fadeIn">
+            <div
+              className="bg-white rounded-xl overflow-hidden w-full mx-auto flex flex-col animate-scaleIn h-[calc(100vh-96px)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Cabeçalho do modal */}
+              <div className="flex justify-between items-center p-4 bg-blue-500">
+                <div className="flex items-center">
+                  <Dumbbell size={20} className="text-white mr-2" />
+                  <h2 className="text-xl font-bold text-white">
+                    Escolha um Exercício
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setModalAberto(false)}
+                  className="bg-gray-900/50 text-white p-2 rounded-lg"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Área de filtro */}
+              <div className="p-4 bg-gray-100">
+                <div className="flex items-center mb-2">
+                  <Filter size={16} className="text-gray-500 mr-2" />
+                  <label className="text-sm font-medium text-gray-700">
+                    Filtrar por grupo muscular:
+                  </label>
+                </div>
+                <select
+                  value={grupoSelecionadoModal}
+                  onChange={(e) => setGrupoSelecionadoModal(e.target.value)}
+                  className="w-full border text-gray-800 border-gray-300 rounded-lg px-3 py-2.5 bg-white focus:outline-none"
+                >
+                  {gruposDisponiveis.map((grupo) => (
+                    <option key={grupo} value={grupo}>
+                      {grupo}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Lista de exercícios */}
+              <div className="overflow-y-auto flex-grow">
+                {grupoSelecionadoModal !== "Todos" && (
+                  <div className="flex items-center p-3 bg-blue-100/50">
+                    <CircleArrowDown size={16} className="text-blue-500 mr-2" />
+                    <span className="text-gray-800 font-medium">
+                      {grupoSelecionadoModal}
+                    </span>
+                  </div>
+                )}
+
+                {Object.entries(exerciciosAgrupadosModal).map(
+                  ([grupo, lista]) => (
+                    <div key={grupo}>
+                      {/* Título do grupo muscular (apenas se filtro for "Todos") */}
+                      {grupoSelecionadoModal === "Todos" && (
+                        <div className="p-3 flex items-center font-medium text-gray-800 bg-gray-50 sticky top-0">
+                          <CircleArrowRight
+                            size={16}
+                            className="text-blue-500 mr-2"
+                          />
+                          <span className="text-gray-800 font-medium">
+                            {grupo}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Lista de exercícios do grupo */}
+                      <div>
+                        {lista.map((exercicio) => (
+                          <div
+                            key={exercicio.id}
+                            onClick={() => handleAdicionarExercicio(exercicio)}
+                            className="p-3.5 border-b border-gray-100 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors flex justify-between items-center"
+                          >
+                            <p className="font-medium text-gray-800">
+                              {exercicio.nome}
+                            </p>
+                            <ChevronRight size={18} className="text-gray-400" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </PageWrapper>
   );
 };
 
 export default RegistrarCarga;
-

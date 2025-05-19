@@ -18,7 +18,7 @@ const Navegacao = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-md z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-slate-800/80 backdrop-blur-md border-t border-slate-700/50 shadow-lg z-50">
       <div className="flex justify-around items-center h-24 pb-5">
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
@@ -28,15 +28,17 @@ const Navegacao = () => {
               key={tab.path}
               to={tab.path}
               className={`group flex flex-col items-center justify-center text-xs transition-all duration-300 ${
-                isActive ? "text-blue-600 font-bold" : "text-gray-500"
+                isActive ? "text-blue-300 font-bold hover:text-blue-300" : "text-gray-300 hover:text-gray-200"
               }`}
             >
               <div className="relative flex flex-col items-center">
-                {tab.icon}
-                <span>{tab.label}</span>
+                <div className={`transition-all duration-300 transform ${isActive ? "scale-110 text-blue-300" : "text-gray-300"}`}>
+                  {tab.icon}
+                </div>
+                <span className="mt-1">{tab.label}</span>
                 <span
                   className={`absolute -bottom-1 left-1/2 transform -translate-x-1/2 h-1 w-1.5 rounded-full transition-all duration-300 ${
-                    isActive ? "w-4 bg-blue-500" : "w-0"
+                    isActive ? "w-5 bg-blue-300" : "w-0"
                   }`}
                 ></span>
               </div>

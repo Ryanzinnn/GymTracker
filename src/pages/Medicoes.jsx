@@ -11,8 +11,8 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { useAuth } from "../context/AuthContext"; // Ajuste o caminho se necessário
-import { getUserData, saveUserData } from "../utils/storage"; // Ajuste o caminho se necessário
+import { useAuth } from "../context/AuthContext";
+import { getUserData, saveUserData } from "../utils/storage";
 
 ChartJS.register(
   LineElement,
@@ -45,9 +45,11 @@ const hojeFormatada = () => {
 };
 
 const calcularIdade = (nascimento) => {
-  if (!nascimento || typeof nascimento !== 'string' || nascimento.trim() === '') return null;
+  if (!nascimento || typeof nascimento !== "string" || nascimento.trim() === "")
+    return null;
   const nascDate = new Date(nascimento.trim());
-  if (isNaN(nascDate.getTime())) { // Verifica se a data é válida
+  if (isNaN(nascDate.getTime())) {
+    // Verifica se a data é válida
     return null;
   }
   const hoje = new Date();
@@ -68,7 +70,7 @@ const getClassificacaoIMC = (imc) => {
   if (valorIMC >= 30 && valorIMC <= 34.9) return "Obesidade grau I";
   if (valorIMC >= 35 && valorIMC <= 39.9) return "Obesidade grau II";
   if (valorIMC >= 40) return "Obesidade grau III";
-  return ""; // Caso não se encaixe em nenhuma faixa (improvável com as checagens anteriores)
+  return "";
 };
 
 const CHAVE_BASE_CONSUMO_AGUA = "gymtracker_consumo_agua"; // Chave base para o consumo de água
@@ -80,7 +82,7 @@ const Medicoes = () => {
   const [mostraInputNascimento, setMostraInputNascimento] = useState(true);
   const [idade, setIdade] = useState(null);
 
-  const [altura, setAltura] = useState(""); // Pode ser string do input ou número do estado
+  const [altura, setAltura] = useState("");
   const [mostraInputAltura, setMostraInputAltura] = useState(true);
 
   const [peso, setPeso] = useState("");
@@ -104,7 +106,12 @@ const Medicoes = () => {
     if (user) {
       const nascimentoSalvo = getUserData("medicoes_dataNascimento", user.uid);
       const idadeCalculada = calcularIdade(nascimentoSalvo);
-      if (nascimentoSalvo && typeof nascimentoSalvo === 'string' && nascimentoSalvo.trim() !== '' && idadeCalculada !== null) {
+      if (
+        nascimentoSalvo &&
+        typeof nascimentoSalvo === "string" &&
+        nascimentoSalvo.trim() !== "" &&
+        idadeCalculada !== null
+      ) {
         setDataNascimento(nascimentoSalvo.trim());
         setIdade(idadeCalculada);
         setMostraInputNascimento(false);
@@ -115,10 +122,16 @@ const Medicoes = () => {
       }
 
       const alturaSalva = getUserData("medicoes_altura", user.uid);
-      const alturaTrimmed = typeof alturaSalva === 'string' ? alturaSalva.trim() : (typeof alturaSalva === 'number' ? String(alturaSalva) : '');
-      const alturaNum = alturaTrimmed !== '' ? parseInt(alturaTrimmed, 10) : NaN;
-      if (alturaTrimmed !== '' && !isNaN(alturaNum)) {
-        setAltura(alturaNum); // Armazena como número
+      const alturaTrimmed =
+        typeof alturaSalva === "string"
+          ? alturaSalva.trim()
+          : typeof alturaSalva === "number"
+          ? String(alturaSalva)
+          : "";
+      const alturaNum =
+        alturaTrimmed !== "" ? parseInt(alturaTrimmed, 10) : NaN;
+      if (alturaTrimmed !== "" && !isNaN(alturaNum)) {
+        setAltura(alturaNum);
         setMostraInputAltura(false);
       } else {
         setAltura("");
@@ -170,7 +183,8 @@ const Medicoes = () => {
     }
 
     const alturaStrTrimmed = String(altura).trim();
-    const alturaNumParaSalvar = alturaStrTrimmed !== "" ? Number(alturaStrTrimmed) : NaN;
+    const alturaNumParaSalvar =
+      alturaStrTrimmed !== "" ? Number(alturaStrTrimmed) : NaN;
 
     if (alturaStrTrimmed !== "" && !isNaN(alturaNumParaSalvar)) {
       saveUserData("medicoes_altura", user.uid, String(alturaNumParaSalvar));
@@ -198,11 +212,14 @@ const Medicoes = () => {
       return;
     }
     if (!peso || isNaN(parseFloat(peso))) {
-        alert("Por favor, insira um valor de peso válido.");
-        return;
+      alert("Por favor, insira um valor de peso válido.");
+      return;
     }
     const dataAtualPeso = dataPeso || hojeFormatada();
-    const novoHistoricoPesos = [...pesos, { valor: parseFloat(peso), data: dataAtualPeso }];
+    const novoHistoricoPesos = [
+      ...pesos,
+      { valor: parseFloat(peso), data: dataAtualPeso },
+    ];
     setPesos(novoHistoricoPesos);
     saveUserData("medicoes_pesos_historico", user.uid, novoHistoricoPesos);
     setPeso("");
@@ -215,13 +232,20 @@ const Medicoes = () => {
       return;
     }
     if (!gordura || isNaN(parseFloat(gordura))) {
-        alert("Por favor, insira um valor de gordura válido.");
-        return;
+      alert("Por favor, insira um valor de gordura válido.");
+      return;
     }
     const dataAtualGordura = dataGordura || hojeFormatada();
-    const novoHistoricoGorduras = [...gorduras, { valor: parseFloat(gordura), data: dataAtualGordura }];
+    const novoHistoricoGorduras = [
+      ...gorduras,
+      { valor: parseFloat(gordura), data: dataAtualGordura },
+    ];
     setGorduras(novoHistoricoGorduras);
-    saveUserData("medicoes_gorduras_historico", user.uid, novoHistoricoGorduras);
+    saveUserData(
+      "medicoes_gorduras_historico",
+      user.uid,
+      novoHistoricoGorduras
+    );
     setGordura("");
   };
 
@@ -243,15 +267,33 @@ const Medicoes = () => {
     };
     let medicoesTemp = [...medicoes, novaMedida];
     if (parteSelecionada === "Cintura" || parteSelecionada === "Quadril") {
-      const cinturaEntry = medicoesTemp.find(m => m.parte === "Cintura" && m.data === dataMedida);
-      const quadrilEntry = medicoesTemp.find(m => m.parte === "Quadril" && m.data === dataMedida);
-      if (cinturaEntry && quadrilEntry && cinturaEntry.valor > 0 && quadrilEntry.valor > 0) {
+      const cinturaEntry = medicoesTemp.find(
+        (m) => m.parte === "Cintura" && m.data === dataMedida
+      );
+      const quadrilEntry = medicoesTemp.find(
+        (m) => m.parte === "Quadril" && m.data === dataMedida
+      );
+      if (
+        cinturaEntry &&
+        quadrilEntry &&
+        cinturaEntry.valor > 0 &&
+        quadrilEntry.valor > 0
+      ) {
         const rcqValor = cinturaEntry.valor / quadrilEntry.valor;
-        const rcqIndex = medicoesTemp.findIndex(m => m.parte === "RC/Q" && m.data === dataMedida);
+        const rcqIndex = medicoesTemp.findIndex(
+          (m) => m.parte === "RC/Q" && m.data === dataMedida
+        );
         if (rcqIndex !== -1) {
-          medicoesTemp[rcqIndex] = { ...medicoesTemp[rcqIndex], valor: parseFloat(rcqValor.toFixed(2)) };
+          medicoesTemp[rcqIndex] = {
+            ...medicoesTemp[rcqIndex],
+            valor: parseFloat(rcqValor.toFixed(2)),
+          };
         } else {
-          medicoesTemp.push({ parte: "RC/Q", valor: parseFloat(rcqValor.toFixed(2)), data: dataMedida });
+          medicoesTemp.push({
+            parte: "RC/Q",
+            valor: parseFloat(rcqValor.toFixed(2)),
+            data: dataMedida,
+          });
         }
       }
     }
@@ -261,33 +303,32 @@ const Medicoes = () => {
     setParteSelecionada("");
     setModalAberto(false);
   };
-  
+
   const handleLimparTodosOsDados = () => {
     if (!user) {
       alert("Você precisa estar logado para limpar os dados.");
       return;
     }
-    const confirmacao = window.confirm("Tem certeza que deseja apagar todos os seus dados de medições? Esta ação não pode ser desfeita e também limpará seu registro de consumo de água do dia.");
+    const confirmacao = window.confirm(
+      "Tem certeza que deseja apagar todos os seus dados de medições? Esta ação não pode ser desfeita e também limpará seu registro de consumo de água do dia."
+    );
     if (confirmacao) {
-      // saveUserData("medicoes_dataNascimento", user.uid, "");
-      // saveUserData("medicoes_altura", user.uid, "");
       saveUserData("medicoes_pesos_historico", user.uid, []);
       saveUserData("medicoes_gorduras_historico", user.uid, []);
       saveUserData("medicoes_corpo_historico", user.uid, []);
-      
-      // Limpar também os dados de consumo de água
-      // Para garantir que o App.jsx recarregue com consumo zerado, salvamos null
-      // ou um objeto que represente o estado inicial zerado para o dia.
+
       const hojeISO = new Date().toISOString().split("T")[0];
       saveUserData(CHAVE_BASE_CONSUMO_AGUA, user.uid, {
         data: hojeISO,
         consumo: 0,
-        meta: 2000, // Meta padrão, será recalculada no App.jsx se peso/idade existirem
-        ultimoRegistroHora: null
+        meta: 2000, // Meta padrão, será recalculada se peso/idade existirem
+        ultimoRegistroHora: null,
       });
 
-      carregarDadosDoUsuario(); 
-      alert("Todos os seus dados de medições e o consumo de água do dia foram apagados.");
+      carregarDadosDoUsuario();
+      alert(
+        "Todos os seus dados de medições e o consumo de água do dia foram apagados."
+      );
     }
   };
 
@@ -321,9 +362,13 @@ const Medicoes = () => {
     );
   }
 
-  const ultimoPesoValido = pesos.length > 0 && pesos.at(-1)?.valor ? pesos.at(-1).valor : null;
+  const ultimoPesoValido =
+    pesos.length > 0 && pesos.at(-1)?.valor ? pesos.at(-1).valor : null;
   const alturaValida = altura && !isNaN(Number(altura)) ? Number(altura) : null;
-  const imcCalculado = ultimoPesoValido && alturaValida ? (ultimoPesoValido / (alturaValida / 100) ** 2).toFixed(1) : "—";
+  const imcCalculado =
+    ultimoPesoValido && alturaValida
+      ? (ultimoPesoValido / (alturaValida / 100) ** 2).toFixed(1)
+      : "—";
   const classificacaoIMC = getClassificacaoIMC(imcCalculado);
 
   return (
@@ -342,7 +387,12 @@ const Medicoes = () => {
 
         {mostraInputNascimento ? (
           <div className="space-y-1">
-            <label htmlFor="dataNascimentoInput" className="block text-sm font-medium text-gray-700">Data de Nascimento:</label>
+            <label
+              htmlFor="dataNascimentoInput"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Data de Nascimento:
+            </label>
             <input
               id="dataNascimentoInput"
               type="date"
@@ -354,7 +404,10 @@ const Medicoes = () => {
         ) : (
           <div className="flex items-center justify-between">
             <p className="text-blue-700">
-              Idade: <strong>{idade !== null ? `${idade} anos` : "Não informada"}</strong>
+              Idade:{" "}
+              <strong>
+                {idade !== null ? `${idade} anos` : "Não informada"}
+              </strong>
             </p>
             <button
               onClick={() => setMostraInputNascimento(true)}
@@ -367,12 +420,17 @@ const Medicoes = () => {
 
         {mostraInputAltura ? (
           <div className="space-y-1 mt-2">
-             <label htmlFor="alturaInput" className="block text-sm font-medium text-gray-700">Altura (cm):</label>
+            <label
+              htmlFor="alturaInput"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Altura (cm):
+            </label>
             <input
               id="alturaInput"
               type="number"
-              value={altura} 
-              onChange={(e) => setAltura(e.target.value)} 
+              value={altura}
+              onChange={(e) => setAltura(e.target.value)}
               className="w-full p-2 border rounded"
               placeholder="Altura (cm)"
             />
@@ -380,7 +438,12 @@ const Medicoes = () => {
         ) : (
           <div className="flex items-center justify-between mt-2">
             <p className="text-blue-700">
-              Altura: <strong>{alturaValida ? `${(alturaValida / 100).toFixed(2)} m` : "Não informada"}</strong>
+              Altura:{" "}
+              <strong>
+                {alturaValida
+                  ? `${(alturaValida / 100).toFixed(2)} m`
+                  : "Não informada"}
+              </strong>
             </p>
             <button
               onClick={() => setMostraInputAltura(true)}
@@ -402,16 +465,13 @@ const Medicoes = () => {
 
         <p className="mt-2 text-blue-700">
           Peso atual:{" "}
-          <strong>
-            {ultimoPesoValido ? `${ultimoPesoValido} kg` : "—"}
-          </strong>
+          <strong>{ultimoPesoValido ? `${ultimoPesoValido} kg` : "—"}</strong>
         </p>
         <p className="text-blue-700">
-          IMC:{" "}
-          <strong>
-            {imcCalculado}
-          </strong>
-          {classificacaoIMC && <span className="ml-2 text-sm">({classificacaoIMC})</span>}
+          IMC: <strong>{imcCalculado}</strong>
+          {classificacaoIMC && (
+            <span className="ml-2 text-sm">({classificacaoIMC})</span>
+          )}
         </p>
       </div>
 
@@ -423,7 +483,12 @@ const Medicoes = () => {
         <h2 className="text-lg font-semibold text-black">Peso Corporal</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="pesoInput" className="block text-sm font-medium text-gray-700">Peso (kg):</label>
+            <label
+              htmlFor="pesoInput"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Peso (kg):
+            </label>
             <input
               id="pesoInput"
               type="number"
@@ -435,7 +500,12 @@ const Medicoes = () => {
             />
           </div>
           <div>
-            <label htmlFor="dataPesoInput" className="block text-sm font-medium text-gray-700">Data do Registro:</label>
+            <label
+              htmlFor="dataPesoInput"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Data do Registro:
+            </label>
             <input
               id="dataPesoInput"
               type="date"
@@ -446,7 +516,10 @@ const Medicoes = () => {
             />
           </div>
         </div>
-        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded w-full sm:w-auto">
+        <button
+          type="submit"
+          className="bg-green-600 text-white px-4 py-2 rounded w-full sm:w-auto"
+        >
           Registrar Peso
         </button>
         {pesos.length > 0 ? (
@@ -465,7 +538,9 @@ const Medicoes = () => {
             </p>
           </>
         ) : (
-          <p className="text-sm text-gray-500 mt-2">Nenhum registro de peso encontrado.</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Nenhum registro de peso encontrado.
+          </p>
         )}
       </form>
 
@@ -474,10 +549,17 @@ const Medicoes = () => {
         onSubmit={handleSubmitGordura}
         className="bg-white p-4 rounded-xl shadow space-y-3"
       >
-        <h2 className="text-lg font-semibold text-black">Percentual de Gordura</h2>
+        <h2 className="text-lg font-semibold text-black">
+          Percentual de Gordura
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="gorduraInput" className="block text-sm font-medium text-gray-700">Gordura (%):</label>
+            <label
+              htmlFor="gorduraInput"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Gordura (%):
+            </label>
             <input
               id="gorduraInput"
               type="number"
@@ -489,7 +571,12 @@ const Medicoes = () => {
             />
           </div>
           <div>
-            <label htmlFor="dataGorduraInput" className="block text-sm font-medium text-gray-700">Data do Registro:</label>
+            <label
+              htmlFor="dataGorduraInput"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Data do Registro:
+            </label>
             <input
               id="dataGorduraInput"
               type="date"
@@ -500,7 +587,10 @@ const Medicoes = () => {
             />
           </div>
         </div>
-        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded w-full sm:w-auto">
+        <button
+          type="submit"
+          className="bg-green-600 text-white px-4 py-2 rounded w-full sm:w-auto"
+        >
           Registrar Gordura
         </button>
         {gorduras.length > 0 ? (
@@ -519,14 +609,18 @@ const Medicoes = () => {
             </p>
           </>
         ) : (
-          <p className="text-sm text-gray-500 mt-2">Nenhum registro de gordura encontrado.</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Nenhum registro de gordura encontrado.
+          </p>
         )}
       </form>
 
       {/* Medidas Corporais */}
       <div className="bg-white p-4 rounded-xl shadow">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-lg font-semibold text-black">Medidas Corporais</h2>
+          <h2 className="text-lg font-semibold text-black">
+            Medidas Corporais
+          </h2>
           <button
             onClick={() => {
               setParteSelecionada("");
@@ -542,16 +636,33 @@ const Medicoes = () => {
         <div className="space-y-2">
           {partesCorpo.map((parte) => {
             const historicoParte = medicoes.filter((m) => m.parte === parte);
-            const ultimaMedida = historicoParte.length > 0 ? historicoParte.sort((a,b) => new Date(b.data) - new Date(a.data))[0] : null;
+            const ultimaMedida =
+              historicoParte.length > 0
+                ? historicoParte.sort(
+                    (a, b) => new Date(b.data) - new Date(a.data)
+                  )[0]
+                : null;
             return (
-              <div key={parte} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+              <div
+                key={parte}
+                className="flex justify-between items-center p-2 bg-gray-50 rounded"
+              >
                 <span className="text-sm text-gray-700">{parte}:</span>
                 <div className="flex items-center">
                   <span className="text-sm font-medium mr-3">
-                    {ultimaMedida ? `${ultimaMedida.valor}${parte === "RC/Q" ? "" : " cm"} (${new Date(ultimaMedida.data + "T00:00:00").toLocaleDateString("pt-BR")})` : "N/A"}
+                    {ultimaMedida
+                      ? `${ultimaMedida.valor}${
+                          parte === "RC/Q" ? "" : " cm"
+                        } (${new Date(
+                          ultimaMedida.data + "T00:00:00"
+                        ).toLocaleDateString("pt-BR")})`
+                      : "N/A"}
                   </span>
                   {historicoParte.length > 0 && (
-                    <button onClick={() => abrirModalGrafico(parte)} className="text-xs text-blue-500 hover:text-blue-700">
+                    <button
+                      onClick={() => abrirModalGrafico(parte)}
+                      className="text-xs text-blue-500 hover:text-blue-700"
+                    >
                       Ver Histórico
                     </button>
                   )}
@@ -566,10 +677,17 @@ const Medicoes = () => {
       {modalAberto && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-            <h3 className="text-xl font-semibold mb-4">Adicionar Medida Corporal</h3>
+            <h3 className="text-xl font-semibold mb-4">
+              Adicionar Medida Corporal
+            </h3>
             <form onSubmit={handleSubmitMedida} className="space-y-4">
               <div>
-                <label htmlFor="parteCorpoSelect" className="block text-sm font-medium text-gray-700">Parte do Corpo:</label>
+                <label
+                  htmlFor="parteCorpoSelect"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Parte do Corpo:
+                </label>
                 <select
                   id="parteCorpoSelect"
                   value={parteSelecionada}
@@ -578,16 +696,31 @@ const Medicoes = () => {
                   required
                 >
                   <option value="">Selecione...</option>
-                  {partesCorpo.filter(p => p !== "RC/Q").map((p) => <option key={p} value={p}>{p}</option>)}
+                  {partesCorpo
+                    .filter((p) => p !== "RC/Q")
+                    .map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
                 </select>
               </div>
               <div>
-                <label htmlFor="valorMedidaInput" className="block text-sm font-medium text-gray-700">Valor ({parteSelecionada === "RC/Q" ? "" : "cm"}):</label>
+                <label
+                  htmlFor="valorMedidaInput"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Valor ({parteSelecionada === "RC/Q" ? "" : "cm"}):
+                </label>
                 <input
                   id="valorMedidaInput"
                   type="number"
                   step="0.1"
-                  placeholder={parteSelecionada === "RC/Q" ? "Calculado automaticamente" : "Ex: 35.5"}
+                  placeholder={
+                    parteSelecionada === "RC/Q"
+                      ? "Calculado automaticamente"
+                      : "Ex: 35.5"
+                  }
                   value={valor}
                   onChange={(e) => setValor(e.target.value)}
                   className="w-full p-2 border rounded mt-1"
@@ -596,7 +729,12 @@ const Medicoes = () => {
                 />
               </div>
               <div>
-                <label htmlFor="dataMedidaInput" className="block text-sm font-medium text-gray-700">Data da Medição:</label>
+                <label
+                  htmlFor="dataMedidaInput"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Data da Medição:
+                </label>
                 <input
                   id="dataMedidaInput"
                   type="date"
@@ -607,8 +745,19 @@ const Medicoes = () => {
                 />
               </div>
               <div className="flex justify-end space-x-3 pt-2">
-                <button type="button" onClick={() => setModalAberto(false)} className="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded hover:bg-gray-300">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700">Salvar Medida</button>
+                <button
+                  type="button"
+                  onClick={() => setModalAberto(false)}
+                  className="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
+                >
+                  Salvar Medida
+                </button>
               </div>
             </form>
           </div>
@@ -619,12 +768,30 @@ const Medicoes = () => {
       {modalGraficoAberto && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
-            <h3 className="text-xl font-semibold mb-4">Histórico de {parteSelecionada}</h3>
-            <div style={{height: "300px"}}>
-                <Line data={gerarGrafico(medicoes.filter(m => m.parte === parteSelecionada).sort((a,b) => new Date(a.data) - new Date(b.data)), `${parteSelecionada} (${parteSelecionada === "RC/Q" ? "" : "cm"})`, "#3B82F6")} options={{ maintainAspectRatio: false }} />
+            <h3 className="text-xl font-semibold mb-4">
+              Histórico de {parteSelecionada}
+            </h3>
+            <div style={{ height: "300px" }}>
+              <Line
+                data={gerarGrafico(
+                  medicoes
+                    .filter((m) => m.parte === parteSelecionada)
+                    .sort((a, b) => new Date(a.data) - new Date(b.data)),
+                  `${parteSelecionada} (${
+                    parteSelecionada === "RC/Q" ? "" : "cm"
+                  })`,
+                  "#3B82F6"
+                )}
+                options={{ maintainAspectRatio: false }}
+              />
             </div>
             <div className="text-right mt-4">
-              <button onClick={() => setModalGraficoAberto(false)} className="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700">Fechar</button>
+              <button
+                onClick={() => setModalGraficoAberto(false)}
+                className="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
+              >
+                Fechar
+              </button>
             </div>
           </div>
         </div>
@@ -634,4 +801,3 @@ const Medicoes = () => {
 };
 
 export default Medicoes;
-

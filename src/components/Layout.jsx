@@ -13,31 +13,31 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="pb-20 min-h-screen bg-gray-50">
+    <div className="pb-20 min-h-screen bg-gradient-to-br from-slate-900 to-gray-800 text-white">
       {user && (
-        <header className="bg-white shadow p-4 flex items-center justify-between">
+        <header className="bg-slate-800/70 backdrop-blur-sm shadow-md p-4 flex items-center justify-between border-b border-slate-700/50">
           <div className="flex items-center gap-4">
             {user.photoURL && (
               <img
                 src={user.photoURL}
                 alt="Foto do usuário"
-                className="w-10 h-10 rounded-full"
+                className="w-10 h-10 rounded-full border-2 border-blue-400/30"
               />
             )}
-            <span className="font-semibold text-gray-800">
+            <span className="font-semibold text-white">
               Olá, {user.displayName || "Usuário"}!
             </span>
           </div>
           <button
             onClick={handleLogout}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
           >
             Sair
           </button>
         </header>
       )}
 
-      <main className="p-4">{children}</main>
+      <main>{children}</main>
 
       {user && <Navegacao />}
     </div>
