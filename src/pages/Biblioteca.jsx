@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   LineChart,
   Line,
@@ -17,8 +17,6 @@ import {
   ChevronDown,
   ChevronUp,
   BarChart2,
-  Maximize2,
-  X,
   TrendingUp,
   Weight,
   Calendar,
@@ -51,6 +49,7 @@ const Biblioteca = () => {
   const [buscaExercicio, setBuscaExercicio] = useState("");
   const [imagemModal, setImagemModal] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [viewportPosition, setViewportPosition] = useState(0);
   const { user } = useAuth();
 
   // Animação de entrada
@@ -135,6 +134,31 @@ const Biblioteca = () => {
       );
     }
     return null;
+  };
+
+  // Função para abrir o modal com a imagem
+  const abrirImagemModal = (exercicio) => {
+    // Captura a posição atual do scroll e a altura da viewport
+    const scrollY = window.scrollY;
+    const viewportHeight = window.innerHeight;
+    
+    // Calcula o centro da viewport atual
+    const viewportCenter = scrollY + (viewportHeight / 2);
+    setViewportPosition(viewportCenter);
+    
+    // Armazena apenas o nome do exercício, não o caminho completo
+    setImagemModal(exercicio);
+    
+    // Desabilita o scroll da página quando o modal está aberto
+    document.body.style.overflow = 'hidden';
+  };
+  
+  // Função para fechar o modal
+  const fecharImagemModal = () => {
+    setImagemModal(null);
+    
+    // Reabilita o scroll da página quando o modal é fechado
+    document.body.style.overflow = 'auto';
   };
 
   return (
@@ -224,21 +248,16 @@ const Biblioteca = () => {
                       <div className="p-4">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                           <div className="flex items-center gap-4">
-                            <div className="relative group">
-                              <img
-                                src={`/imagens/${exercicio}.jpg`}
-                                alt={`Imagem de ${exercicio}`}
-                                className="w-20 h-20 object-cover rounded-lg cursor-pointer transition-transform hover:scale-105"
-                                onClick={() => setImagemModal(`/imagens/${exercicio}.jpg`)}
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.src = "https://via.placeholder.com/150?text=Sem+Imagem";
-                                }}
-                              />
-                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Maximize2 size={20} className="text-white bg-black/50 p-1 rounded-full" />
-                              </div>
-                            </div>
+                            <img
+                              src={`/imagens/${exercicio}.jpg`}
+                              alt={`Imagem de ${exercicio}`}
+                              className="w-20 h-20 object-cover rounded-lg cursor-pointer transition-transform hover:scale-105"
+                              onClick={() => abrirImagemModal(exercicio)}
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "https://via.placeholder.com/150?text=Sem+Imagem";
+                              }}
+                            />
                             <div>
                               <h3 className="font-medium text-white">{exercicio}</h3>
                               <span className="text-xs text-gray-400 bg-slate-700 px-2 py-0.5 rounded-full inline-block mt-1">
@@ -341,41 +360,41 @@ const Biblioteca = () => {
                             </div>
                           )}
 
-                          {buscarProgresso(exercicio).length > 0 && (
-                            <div className="bg-slate-700/50 rounded-lg overflow-hidden">
-                              <div className="p-3 bg-slate-700 flex items-center">
-                                <Calendar size={14} className="text-blue-400 mr-2" />
-                                <h4 className="text-sm font-medium text-white">Histórico de Treinos</h4>
-                              </div>
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                  <thead>
-                                    <tr className="border-b border-slate-600 text-gray-400">
-                                      <th className="py-2 px-3 text-left">Data</th>
-                                      <th className="py-2 px-3 text-left">Volume Total</th>
-                                      <th className="py-2 px-3 text-left">Carga Máxima</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {buscarProgresso(exercicio).map((item, index) => (
-                                      <tr 
-                                        key={index} 
-                                        className={`border-b border-slate-600/50 ${index % 2 === 0 ? 'bg-slate-800/30' : ''}`}
-                                      >
-                                        <td className="py-2 px-3 text-gray-300">{item.data}</td>
-                                        <td className="py-2 px-3">
-                                          <span className="text-blue-400 font-medium">{item.volumeTotal} kg</span>
-                                        </td>
-                                        <td className="py-2 px-3">
-                                          <span className="text-red-400 font-medium">{item.cargaMaxima} kg</span>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
+                          <div className="bg-slate-700/50 rounded-lg overflow-hidden">
+                            <div className="flex items-center px-4 py-2 bg-slate-700">
+                              <Calendar size={16} className="text-blue-400 mr-2" />
+                              <h4 className="text-sm font-medium text-white">Histórico de Treinos</h4>
                             </div>
-                          )}
+                            
+                            <div className="divide-y divide-slate-700">
+                              {buscarProgresso(exercicio).length > 0 ? (
+                                buscarProgresso(exercicio).map((progresso, index) => (
+                                  <div 
+                                    key={index} 
+                                    className="px-4 py-3 flex justify-between items-center hover:bg-slate-700/30 transition-colors"
+                                  >
+                                    <div className="flex items-center">
+                                      <span className="text-sm text-white">{progresso.data}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-4">
+                                      <div className="flex flex-col items-end">
+                                        <span className="text-xs text-gray-400">Volume</span>
+                                        <span className="text-sm text-blue-400 font-medium">{progresso.volumeTotal} kg</span>
+                                      </div>
+                                      <div className="flex flex-col items-end">
+                                        <span className="text-xs text-gray-400">Carga Máx</span>
+                                        <span className="text-sm text-red-400 font-medium">{progresso.cargaMaxima} kg</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="px-4 py-3 text-center text-gray-400 text-sm">
+                                  Nenhum registro encontrado
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -406,23 +425,32 @@ const Biblioteca = () => {
           )}
         </div>
         
-        {/* Modal de imagem */}
+        {/* Modal de imagem - Ajustado para aparecer centralizado na viewport atual */}
         {imagemModal && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 animate-fadeIn"
-            onClick={() => setImagemModal(null)}
-          >
-            <div className="relative max-w-[90%] max-h-[90%]">
-              <button 
-                className="absolute -top-10 right-0 bg-slate-800 p-2 rounded-full hover:bg-slate-700 transition-colors"
-                onClick={() => setImagemModal(null)}
-              >
-                <X size={20} className="text-white" />
-              </button>
+          <>
+            {/* Overlay de fundo que cobre toda a tela exceto a navbar */}
+            <div 
+              className="fixed inset-0 bottom-24 bg-black bg-opacity-70 z-50"
+              onClick={fecharImagemModal}
+              style={{ zIndex: 9998 }}
+            />
+            
+            {/* Container da imagem posicionado no centro da viewport atual */}
+            <div
+              className="fixed z-50 flex justify-center w-full"
+              onClick={fecharImagemModal}
+              style={{
+                top: viewportPosition - (window.innerHeight / 2.5), // Centraliza na viewport atual
+                height: window.innerHeight / 2, // Altura suficiente para centralizar verticalmente
+                display: 'flex',
+                alignItems: 'center',
+                zIndex: 9999
+              }}
+            >
               <img
-                src={imagemModal}
+                src={`/imagens/${imagemModal}.jpg`}
                 alt="Exercício"
-                className="max-w-full max-h-[80vh] rounded-lg shadow-lg"
+                className="max-w-[90%] max-h-[85%] rounded-lg shadow-lg"
                 onClick={(e) => e.stopPropagation()}
                 onError={(e) => {
                   e.target.onerror = null;
@@ -430,7 +458,7 @@ const Biblioteca = () => {
                 }}
               />
             </div>
-          </div>
+          </>
         )}
       </div>
 
