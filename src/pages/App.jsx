@@ -325,7 +325,7 @@ const App = () => {
 
   return (
     <PageWrapper>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-gray-800 text-white">
+      <div className="min-h-screen bg-gradient-to-br  text-white">
         {/* Elementos decorativos de fundo */}
         <div className="fixed top-1/4 left-1/4 w-32 h-32 bg-blue-500 rounded-full mix-blend-screen filter blur-xl opacity-10 animate-blob animation-delay-2000"></div>
         <div className="fixed top-1/2 right-1/4 w-32 h-32 bg-teal-400 rounded-full mix-blend-screen filter blur-xl opacity-10 animate-blob animation-delay-4000"></div>
@@ -574,6 +574,19 @@ const App = () => {
               <Droplet size={18} className="mr-2" />
               Registrar Água
             </button>
+            {/* Dica de saúde */}
+            <div className="bg-blue-500/10 p-4 mt-4 rounded-xl flex items-start text-sm text-blue-300 animate-pulse">
+              <div className="bg-blue-500/20 p-2 rounded-full mr-3 mt-0.5">
+                <Droplet size={16} className="text-blue-400" />
+              </div>
+              <div>
+                <p className="font-medium text-blue-400 mb-1">Dica de saúde</p>
+                <p>
+                  Mantenha-se hidratado! Beber água regularmente ajuda no
+                  metabolismo e na recuperação muscular.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

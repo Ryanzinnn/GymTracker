@@ -13,10 +13,12 @@
     "chart.js": "^4.4.9",
     "firebase": "^11.7.1",
     "framer-motion": "^12.10.0",
+    "keen-slider": "^6.8.6",
     "lucide-react": "^0.507.0",
     "react": "^19.1.0",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.1.0",
+    "react-responsive-carousel": "^3.2.23",
     "react-router-dom": "^7.5.3",
     "recharts": "^2.15.3",
     "tailwind-scrollbar-hide": "^2.0.0"

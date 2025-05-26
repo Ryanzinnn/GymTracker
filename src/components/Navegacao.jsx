@@ -1,47 +1,64 @@
 import { Link, useLocation } from "react-router-dom";
 import {
   Dumbbell,
-  ClipboardList,
   Ruler,
   History,
-  Book // Importando o ícone Book
+  Book
 } from "lucide-react";
+import { motion } from "framer-motion"; // Importar motion
 
 const Navegacao = () => {
   const location = useLocation();
 
   const tabs = [
-    { label: "Exercícios", path: "/app", icon: <Dumbbell size={25} /> },
-    { label: "Medições", path: "/medicoes", icon: <Ruler size={25} /> },
-    { label: "Histórico", path: "/historico", icon: <History size={25} /> },
-    { label: "Biblioteca", path: "/biblioteca", icon: <Book size={25} /> }, // Novo item adicionado
+    { label: "Exercícios", path: "/app", icon: Dumbbell },
+    { label: "Medições", path: "/medicoes", icon: Ruler },
+    { label: "Histórico", path: "/historico", icon: History },
+    { label: "Biblioteca", path: "/biblioteca", icon: Book },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-slate-800/80 backdrop-blur-md border-t border-slate-700/50 shadow-lg z-50">
-      <div className="flex justify-around items-center h-24 pb-5">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-700/20 bg-gradient-to-t from-gray-950 via-gray-900/95 to-gray-900/90 backdrop-blur-lg shadow-lg">
+      {/* Centraliza e limita a largura */}
+      <div className="mx-auto flex h-24 max-w-md items-stretch justify-around pb-5 pt-1">
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
+          const Icon = tab.icon;
 
           return (
             <Link
               key={tab.path}
               to={tab.path}
-              className={`group flex flex-col items-center justify-center text-xs transition-all duration-300 ${
-                isActive ? "text-blue-300 font-bold hover:text-blue-300" : "text-gray-300 hover:text-gray-200"
-              }`}
+              className={`group relative flex flex-1 flex-col items-center justify-center p-2 text-xs outline-none transition-colors duration-200 ease-out
+                ${isActive
+                  ? "text-cyan-300 hover:text-cyan-300" // Cor ativa mais brilhante
+                  : "text-gray-400 hover:text-gray-100"
+                }`} 
             >
-              <div className="relative flex flex-col items-center">
-                <div className={`transition-all duration-300 transform ${isActive ? "scale-110 text-blue-300" : "text-gray-300"}`}>
-                  {tab.icon}
-                </div>
-                <span className="mt-1">{tab.label}</span>
-                <span
-                  className={`absolute -bottom-1 left-1/2 transform -translate-x-1/2 h-1 w-1.5 rounded-full transition-all duration-300 ${
-                    isActive ? "w-5 bg-blue-300" : "w-0"
-                  }`}
-                ></span>
-              </div>
+              {/* Wrapper para animação de hover/tap com Framer Motion */}
+              <motion.div
+                className="relative flex flex-col items-center"
+                whileHover={{ y: -4, scale: 1.05 }} // Efeito de elevação e escala no hover
+                whileTap={{ scale: 0.95 }} // Efeito de clique
+                transition={{ type: "spring", stiffness: 400, damping: 15 }} // Transição elástica
+              >
+                <Icon
+                  size={24}
+                  className={`transition-transform duration-300 ease-out ${isActive ? "scale-110" : "group-hover:scale-105"}`}
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
+                <span className="mt-1 font-medium tracking-tight">{tab.label}</span>
+              </motion.div>
+
+              {/* Indicador Ativo Animado com Framer Motion */}
+              {isActive && (
+                <motion.div
+                  layoutId="activeIndicator" // Chave para a animação de layout
+                  className="absolute inset-x-2 bottom-1 h-1 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500"
+                  // style={{ borderRadius: 9999 }} // Framer Motion pode precisar disso para animações suaves de borda
+                  transition={{ type: "spring", stiffness: 350, damping: 30 }} // Transição elástica para o indicador
+                ></motion.div>
+              )}
             </Link>
           );
         })}
