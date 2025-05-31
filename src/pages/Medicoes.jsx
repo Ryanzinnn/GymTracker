@@ -8,18 +8,11 @@ import {
   Activity,
   Weight,
   Percent,
-  TrendingDown,
   Info,
   BarChart2,
-  ChevronDown,
   ArrowRight,
-  Award,
   Zap,
-  Droplet,
-  Target,
-  Flame,
   Heart,
-  TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
   ChevronLeft,
@@ -54,11 +47,6 @@ const customSliderStyles = `
   background: linear-gradient(to right, #38bdf8, #3b82f6); /* Gradiente azul do Figma */
 }
 
-.keen-slider-container {
-  /* Não precisa de position relative aqui, o wrapper já tem */
-  /* O padding horizontal será controlado pelo wrapper ou pelos slides */
-}
-
 .keen-slider__slide {
   /* Remover transição de opacidade daqui, será controlada pelo wrapper do botão */
   display: flex;
@@ -81,6 +69,13 @@ const customSliderStyles = `
   height: 100%;
   cursor: pointer;
   background-color: transparent !important; /* Garantir fundo transparente */
+  border: none !important; /* Remover borda */
+}
+
+/* Remover outline ao focar os botões */
+.slide-button:focus,
+.slide-button:focus-visible {
+  outline: none !important;
 }
 
 .slide-button:hover {
@@ -145,7 +140,14 @@ const customSliderStyles = `
   padding: 1rem; /* Área de clique maior */
   transition: opacity 0.2s ease-out;
   background-color: transparent; /* Fundo transparente */
+  border: none !important;
 }
+
+.arrow-figma:focus,
+.arrow-figma:focus-visible {
+  outline: none !important;
+}
+
 
 .arrow-figma--left {
   left: 5px; /* Posição da seta esquerda */
@@ -381,8 +383,6 @@ const Medicoes = () => {
   const [parteSelecionada, setParteSelecionada] = useState("");
   const [valor, setValor] = useState("");
   const [data, setData] = useState(hojeFormatada);
-  const [scrollPosition, setScrollPosition] = useState(0);
-  const [hoveredParte, setHoveredParte] = useState(null);
   const [activeTab, setActiveTab] = useState("dados");
 
   const mainContainerRef = useRef(null);
@@ -483,8 +483,6 @@ const Medicoes = () => {
   // Lógica de bloqueio de scroll em modal
   useEffect(() => {
     if (modalAberto || modalGraficoAberto) {
-      const scrollY = window.scrollY;
-      setScrollPosition(scrollY);
       const scrollbarWidth =
         window.innerWidth - document.documentElement.clientWidth;
       document.body.style.paddingRight = `${scrollbarWidth}px`;
@@ -565,7 +563,6 @@ const Medicoes = () => {
       alert("Você precisa estar logado para salvar os dados.");
       return;
     }
-    let algoSalvoComSucesso = false;
     const dataNascimentoTrimmed = dataNascimento.trim();
     const idadeAoSalvar = calcularIdade(dataNascimentoTrimmed);
 
@@ -573,7 +570,6 @@ const Medicoes = () => {
       saveUserData("medicoes_dataNascimento", user.uid, dataNascimentoTrimmed);
       setIdade(idadeAoSalvar);
       setMostraInputNascimento(false);
-      algoSalvoComSucesso = true;
     } else if (dataNascimentoTrimmed === "") {
       saveUserData("medicoes_dataNascimento", user.uid, "");
       setDataNascimento("");
@@ -592,7 +588,6 @@ const Medicoes = () => {
       saveUserData("medicoes_altura", user.uid, String(alturaNumParaSalvar));
       setAltura(alturaNumParaSalvar);
       setMostraInputAltura(false);
-      algoSalvoComSucesso = true;
     } else if (alturaStrTrimmed === "") {
       saveUserData("medicoes_altura", user.uid, "");
       setAltura("");
@@ -807,8 +802,6 @@ const Medicoes = () => {
 
   // Funções de Modal
   const abrirModal = () => {
-    const scrollY = window.scrollY;
-    setScrollPosition(scrollY);
     setParteSelecionada("");
     setValor("");
     setData(hojeFormatada());
@@ -820,8 +813,6 @@ const Medicoes = () => {
   };
 
   const abrirModalGrafico = (parte) => {
-    const scrollY = window.scrollY;
-    setScrollPosition(scrollY);
     setParteSelecionada(parte);
     setModalGraficoAberto(true);
   };
@@ -1034,7 +1025,7 @@ const Medicoes = () => {
                   <div className="space-y-2 mb-4">
                     <label
                       htmlFor="dataNascimentoInput"
-                      className="block text-sm font-medium text-slate-300 flex items-center"
+                      className="block text-sm font-medium text-slate-300 items-center"
                     >
                       <Calendar size={16} className="text-cyan-400 mr-2" />
                       Data de Nascimento:
@@ -1070,7 +1061,7 @@ const Medicoes = () => {
                   <div className="space-y-2 mb-4">
                     <label
                       htmlFor="alturaInput"
-                      className="block text-sm font-medium text-slate-300 flex items-center"
+                      className="block text-sm font-medium text-slate-300 items-center"
                     >
                       <Ruler size={16} className="text-cyan-400 mr-2" />
                       Altura (cm):
@@ -1399,8 +1390,6 @@ const Medicoes = () => {
                     <div
                       key={parte}
                       className="bg-slate-800/50 rounded-xl p-4 shadow-lg border border-slate-700/50 backdrop-blur-sm transition-all duration-300 hover:shadow-cyan-500/10 hover:border-slate-600/70 transform hover:-translate-y-1"
-                      onMouseEnter={() => setHoveredParte(parte)}
-                      onMouseLeave={() => setHoveredParte(null)}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center">
@@ -1630,7 +1619,6 @@ const Medicoes = () => {
           </div>
         )}
       </div>
-      <Navegacao />
     </PageWrapper>
   );
 };

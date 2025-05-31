@@ -54,7 +54,7 @@ const Navegacao = () => {
               {isActive && (
                 <motion.div
                   layoutId="activeIndicator" // Chave para a animação de layout
-                  className="absolute inset-x-2 bottom-1 h-1 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500"
+                  className="absolute inset-x-2.5 bottom-1 h-1 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500"
                   // style={{ borderRadius: 9999 }} // Framer Motion pode precisar disso para animações suaves de borda
                   transition={{ type: "spring", stiffness: 350, damping: 30 }} // Transição elástica para o indicador
                 ></motion.div>

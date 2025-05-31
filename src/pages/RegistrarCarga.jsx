@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { exercicios as exerciciosDaBiblioteca } from "./Biblioteca";
 import { useAuth } from "../context/AuthContext";
 import { getUserData, saveUserData } from "../utils/storage";
@@ -12,461 +13,61 @@ import {
   X,
   ChevronRight,
   BarChart3,
-  Circle,
   CircleArrowRight,
   CircleArrowDown,
-  Timer,
-  Pause,
-  Play,
-  RotateCcw,
-  ChevronUp,
-  ChevronDown,
-  PlusCircle,
-  MinusCircle,
   Clock,
-  Move,
+  Sparkles,
 } from "lucide-react";
 import PageWrapper from "../components/PageWrapper";
+import CronometroDescanso from "../components/CronometroDescanso";
 
 const CHAVE_REGISTRO_EM_ANDAMENTO = "gymtracker_registro_em_andamento";
 
-// Componente do Cronômetro de Descanso
-const CronometroDescanso = ({ onFechar, estaVisivel, setEstaVisivel }) => {
-  const [tempoRestante, setTempoRestante] = useState(60); // Padrão: 1 minuto (60 segundos)
-  const [tempoTotal, setTempoTotal] = useState(60);
-  const [estaRodando, setEstaRodando] = useState(false);
-  const [estaExpandido, setEstaExpandido] = useState(true);
-  const [posicao, setPosicao] = useState({ x: 16, y: 16 }); // Posição inicial no canto superior direito
-  const [arrastando, setArrastando] = useState(false);
-  const [offsetArrasto, setOffsetArrasto] = useState({ x: 0, y: 0 });
-  const [ultimoToque, setUltimoToque] = useState(0); // Para detectar cliques vs. arrasto no iOS
-  const [moveuSignificativamente, setMoveuSignificativamente] = useState(false); // Para rastrear se houve movimento significativo
-  const refTemporizador = useRef(null);
-  const refAudio = useRef(null);
-  const refCronometro = useRef(null);
-  const refResetAutomatico = useRef(null);
-  const refMinimizacaoAutomatica = useRef(false); // Referência para controlar minimização automática
-  const refPosicaoInicial = useRef({ x: 0, y: 0 }); // Para rastrear a posição inicial do toque
+// Variantes de animação para framer-motion
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+  exit: {
+    opacity: 0,
+    transition: {
+      staggerChildren: 0.05,
+      staggerDirection: -1,
+    },
+  },
+};
 
-  // Inicializar o áudio
-  useEffect(() => {
-    refAudio.current = new Audio(
-      "https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"
-    );
-    return () => {
-      if (refAudio.current) {
-        refAudio.current.pause();
-        refAudio.current = null;
-      }
-    };
-  }, []);
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: { type: "spring", stiffness: 300, damping: 24 }
+  },
+  exit: {
+    y: -20,
+    opacity: 0,
+    transition: { duration: 0.2 }
+  },
+};
 
-  // Efeito para gerenciar o temporizador
-  useEffect(() => {
-    if (estaRodando) {
-      refTemporizador.current = setInterval(() => {
-        setTempoRestante((anterior) => {
-          if (anterior <= 1) {
-            // Quando o temporizador chegar a zero
-            clearInterval(refTemporizador.current);
-            setEstaRodando(false);
-            // Tocar som de alerta
-            if (refAudio.current) {
-              refAudio.current
-                .play()
-                .catch((e) => console.error("Erro ao tocar áudio:", e));
-            }
-
-            // Configurar reset automático após 5 segundos
-            refResetAutomatico.current = setTimeout(() => {
-              setTempoRestante(tempoTotal);
-            }, 5000);
-
-            return 0;
-          }
-          return anterior - 1;
-        });
-      }, 1000);
-
-      // Minimizar automaticamente ao iniciar, mas não bloqueia a expansão futura
-      if (estaExpandido && !refMinimizacaoAutomatica.current) {
-        setEstaExpandido(false);
-
-        // Marcar que houve minimização automática recente
-        refMinimizacaoAutomatica.current = true;
-
-        // Resetar o flag após um curto período para permitir minimizações futuras
-        setTimeout(() => {
-          refMinimizacaoAutomatica.current = false;
-        }, 500);
-      }
-    } else if (refTemporizador.current) {
-      clearInterval(refTemporizador.current);
-    }
-
-    return () => {
-      if (refTemporizador.current) {
-        clearInterval(refTemporizador.current);
-      }
-      if (refResetAutomatico.current) {
-        clearTimeout(refResetAutomatico.current);
-      }
-    };
-  }, [estaRodando, tempoTotal]); // Removido estaExpandido da dependência para evitar re-execução
-
-  // Efeito para adicionar evento de clique global para minimizar
-  useEffect(() => {
-    const handleClickFora = (e) => {
-      if (
-        refCronometro.current &&
-        !refCronometro.current.contains(e.target) &&
-        estaExpandido &&
-        !arrastando
-      ) {
-        setEstaExpandido(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickFora);
-    document.addEventListener("touchstart", handleClickFora, { passive: true });
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickFora);
-      document.removeEventListener("touchstart", handleClickFora);
-    };
-  }, [estaExpandido, arrastando]);
-
-  // Formatar o tempo para exibição (MM:SS)
-  const formatarTempo = (segundos) => {
-    const minutos = Math.floor(segundos / 60);
-    const segundosRestantes = segundos % 60;
-    return `${minutos.toString().padStart(2, "0")}:${segundosRestantes
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
-  // Manipuladores de eventos
-  const handleIniciarPausar = (e) => {
-    e.stopPropagation(); // Impedir propagação para não interferir com outros eventos
-
-    if (tempoRestante === 0) {
-      // Se o temporizador estiver em zero, reinicie com o tempo configurado
-      setTempoRestante(tempoTotal);
-    }
-    setEstaRodando(!estaRodando);
-  };
-
-  const handleReiniciar = (e) => {
-    e.stopPropagation(); // Impedir propagação para não interferir com outros eventos
-
-    setEstaRodando(false);
-    setTempoRestante(tempoTotal);
-    if (refResetAutomatico.current) {
-      clearTimeout(refResetAutomatico.current);
-    }
-  };
-
-  const handleAumentarTempo = (e) => {
-    e.stopPropagation(); // Impedir propagação para não interferir com outros eventos
-
-    const novoTempo = tempoTotal + 30;
-    setTempoTotal(novoTempo);
-    if (!estaRodando) {
-      setTempoRestante(novoTempo);
-    }
-  };
-
-  const handleDiminuirTempo = (e) => {
-    e.stopPropagation(); // Impedir propagação para não interferir com outros eventos
-
-    if (tempoTotal > 30) {
-      const novoTempo = tempoTotal - 30;
-      setTempoTotal(novoTempo);
-      if (!estaRodando) {
-        setTempoRestante(novoTempo);
-      }
-    }
-  };
-
-  const handleFechar = (e) => {
-    e.stopPropagation(); // Impedir propagação para não interferir com outros eventos
-
-    setEstaVisivel(false);
-    if (onFechar) onFechar();
-  };
-
-  const handleToggleExpandir = (e) => {
-    e.stopPropagation(); // Impedir propagação para não interferir com outros eventos
-    setEstaExpandido(!estaExpandido);
-  };
-
-  // Função específica para expandir o cronômetro - sempre funciona
-  const expandirCronometro = () => {
-    setEstaExpandido(true);
-  };
-
-  // Funções para arrastar o cronômetro - otimizadas para iOS
-  const iniciarArrasto = (e) => {
-    e.stopPropagation(); // Impedir propagação para não interferir com outros eventos
-
-    if (!estaExpandido) {
-      setArrastando(true);
-      setMoveuSignificativamente(false);
-
-      // Registrar o tempo do toque para diferenciar clique de arrasto no iOS
-      setUltimoToque(Date.now());
-
-      // Calcular o offset do mouse/toque em relação ao elemento
-      const rect = e.currentTarget.getBoundingClientRect();
-
-      // Obter coordenadas do mouse ou toque
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-
-      if (clientX && clientY) {
-        setOffsetArrasto({
-          x: clientX - rect.left,
-          y: clientY - rect.top,
-        });
-
-        // Salvar posição inicial para detectar movimento
-        refPosicaoInicial.current = { x: clientX, y: clientY };
-      }
-    }
-  };
-
-  const moverArrasto = (e) => {
-    if (arrastando && !estaExpandido) {
-      // Obter posição do mouse ou toque
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-
-      if (clientX && clientY) {
-        const novoX = clientX - offsetArrasto.x;
-        const novoY = clientY - offsetArrasto.y;
-
-        // Verificar se houve movimento significativo
-        const deltaX = Math.abs(clientX - refPosicaoInicial.current.x);
-        const deltaY = Math.abs(clientY - refPosicaoInicial.current.y);
-
-        if (deltaX > 5 || deltaY > 5) {
-          setMoveuSignificativamente(true);
-        }
-
-        // Limitar dentro da janela
-        const maxX = window.innerWidth - 64; // largura aproximada do cronômetro minimizado
-        const maxY = window.innerHeight - 64; // altura aproximada do cronômetro minimizado
-
-        setPosicao({
-          x: Math.max(0, Math.min(novoX, maxX)),
-          y: Math.max(0, Math.min(novoY, maxY)),
-        });
-      }
-    }
-  };
-
-  const pararArrasto = (e) => {
-    if (arrastando) {
-      // Verificar se foi um clique (toque rápido) ou um arrasto
-      const agora = Date.now();
-      const duracaoToque = agora - ultimoToque;
-
-      // Se não houve movimento significativo e o toque foi curto, considerar como clique
-      if (!moveuSignificativamente && duracaoToque < 300) {
-        expandirCronometro();
-      }
-
-      setArrastando(false);
-      setMoveuSignificativamente(false);
-    }
-  };
-
-  // Adicionar eventos de arrasto ao documento
-  useEffect(() => {
-    const handleMouseMove = (e) => moverArrasto(e);
-    const handleMouseUp = (e) => pararArrasto(e);
-    const handleTouchMove = (e) => moverArrasto(e);
-    const handleTouchEnd = (e) => pararArrasto(e);
-
-    if (arrastando) {
-      // Mouse events
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-
-      // Touch events - importante NÃO usar preventDefault para evitar erros
-      document.addEventListener("touchmove", handleTouchMove, {
-        passive: true,
-      });
-      document.addEventListener("touchend", handleTouchEnd);
-      document.addEventListener("touchcancel", handleTouchEnd);
-    }
-
-    return () => {
-      // Mouse events
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-
-      // Touch events
-      document.removeEventListener("touchmove", handleTouchMove);
-      document.removeEventListener("touchend", handleTouchEnd);
-      document.removeEventListener("touchcancel", handleTouchEnd);
-    };
-  }, [
-    arrastando,
-    posicao,
-    offsetArrasto,
-    ultimoToque,
-    moveuSignificativamente,
-  ]);
-
-  // Calcular a cor de fundo com base no tempo restante (vermelho quando próximo de zero)
-  const obterCorFundo = () => {
-    const porcentagem = (tempoRestante / tempoTotal) * 100;
-
-    if (porcentagem <= 20) return "bg-red-500";
-    if (porcentagem <= 50) return "bg-yellow-500";
-    return "bg-green-500";
-  };
-
-  if (!estaVisivel) return null;
-
-  // Estilo para posicionamento quando arrastável
-  const estiloArrasto = !estaExpandido
-    ? {
-        position: "fixed",
-        top: `${posicao.y}px`,
-        left: `${posicao.x}px`,
-        zIndex: 50,
-        cursor: arrastando ? "grabbing" : "grab",
-        WebkitTouchCallout: "none",
-        WebkitUserSelect: "none",
-        KhtmlUserSelect: "none",
-        MozUserSelect: "none",
-        msUserSelect: "none",
-        userSelect: "none",
-        touchAction: "none", // Importante para dispositivos touch
-      }
-    : {};
-
-  return (
-    <div
-      ref={refCronometro}
-      className={
-        estaExpandido ? "fixed top-32 right-4 z-50 flex flex-col items-end" : ""
-      }
-      style={estiloArrasto}
-    >
-      <div
-        className={`bg-slate-800 rounded-xl shadow-lg overflow-hidden transition-all duration-300 ${
-          estaExpandido ? "w-64" : "w-16"
-        }`}
-      >
-        {estaExpandido ? (
-          <>
-            {/* Cabeçalho */}
-            <div className="flex justify-between items-center p-3 bg-slate-700 cronometro-cabecalho">
-              <div className="flex items-center">
-                <Timer size={18} className="text-blue-400 mr-2" />
-                <h3 className="text-white font-medium text-sm">
-                  Cronômetro de Descanso
-                </h3>
-              </div>
-              <div className="flex items-center">
-                <button
-                  onClick={handleToggleExpandir}
-                  className="text-gray-400 hover:text-white p-1 rounded-full transition-colors"
-                >
-                  <ChevronDown size={16} />
-                </button>
-                <button
-                  onClick={handleFechar}
-                  className="text-gray-400 hover:text-white p-1 rounded-full transition-colors ml-1"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Display do tempo */}
-            <div
-              className={`flex justify-center items-center py-6 ${obterCorFundo()} transition-colors ${
-                tempoRestante <= 10 ? "timer-pulse" : ""
-              }`}
-            >
-              <span className="text-white text-3xl font-bold">
-                {formatarTempo(tempoRestante)}
-              </span>
-            </div>
-
-            {/* Controles de ajuste de tempo - Simplificado sem texto */}
-            <div className="flex justify-center items-center gap-4 p-3 bg-slate-700">
-              <button
-                onClick={handleDiminuirTempo}
-                className="flex justify-center items-center bg-slate-600 hover:bg-slate-500 w-full text-white p-2 rounded-lg transition-colors"
-                disabled={tempoTotal <= 30}
-              >
-                <MinusCircle size={20} />
-              </button>
-              <button
-                onClick={handleAumentarTempo}
-                className="flex justify-center items-center bg-slate-600 hover:bg-slate-500 w-full text-white p-2 rounded-lg transition-colors"
-              >
-                <PlusCircle size={20} />
-              </button>
-            </div>
-
-            {/* Controles de iniciar/pausar e resetar */}
-            <div className="flex justify-between p-3 bg-slate-800">
-              <button
-                onClick={handleIniciarPausar}
-                className={`flex items-center justify-center rounded-lg px-4 py-2 text-white transition-colors ${
-                  estaRodando
-                    ? "bg-yellow-500 hover:bg-yellow-600"
-                    : "bg-green-500 hover:bg-green-600"
-                }`}
-              >
-                {estaRodando ? (
-                  <Pause size={16} className="mr-1" />
-                ) : (
-                  <Play size={16} className="mr-1" />
-                )}
-                {estaRodando ? "Pausar" : "Iniciar"}
-              </button>
-              <button
-                onClick={handleReiniciar}
-                className="flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded-lg px-4 py-2 text-white transition-colors"
-              >
-                <RotateCcw size={16} className="mr-1" />
-                Resetar
-              </button>
-            </div>
-          </>
-        ) : (
-          // Versão minimizada redesenhada - mais elegante
-          <div className="flex flex-col">
-            <div
-              className="flex items-center justify-between px-2 py-1 bg-slate-700"
-              onMouseDown={iniciarArrasto}
-              onTouchStart={iniciarArrasto}
-            >
-              <Move size={18} className="text-gray-400" />
-              <Timer size={21} className="text-blue-400" />
-            </div>
-            <button
-              className={`w-full flex justify-center items-center p-3 ${obterCorFundo()} transition-colors ${
-                tempoRestante <= 10 ? "timer-pulse" : ""
-              } focus:outline-none`}
-              onClick={expandirCronometro}
-            >
-              <span className="text-white text-base font-bold">
-                {formatarTempo(tempoRestante)}
-              </span>
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+const modalVariants = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: { 
+    opacity: 1, 
+    scale: 1,
+    transition: { type: "spring", stiffness: 400, damping: 30 }
+  },
+  exit: { 
+    opacity: 0, 
+    scale: 0.9,
+    transition: { duration: 0.2 }
+  }
 };
 
 const RegistrarCarga = () => {
@@ -475,6 +76,7 @@ const RegistrarCarga = () => {
   const [exercicios, setExercicios] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
   const [cronometroVisivel, setCronometroVisivel] = useState(true);
+  const [animateButton, setAnimateButton] = useState(false);
 
   // Estados que serão persistidos
   const [tituloTreino, setTituloTreino] = useState("");
@@ -545,6 +147,10 @@ const RegistrarCarga = () => {
       },
     ]);
     setModalAberto(false);
+    
+    // Animar botão de salvar
+    setAnimateButton(true);
+    setTimeout(() => setAnimateButton(false), 1000);
   };
 
   const handleAlterarSerie = (exIndex, serieIndex, campo, valor) => {
@@ -690,297 +296,471 @@ const RegistrarCarga = () => {
         onFechar={() => setCronometroVisivel(false)}
       />
 
-      <div
-        className={`p-1 max-w-screen-md mx-auto space-y-6 transform transition-all duration-700 ease-out ${
-          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-        }`}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="p-1 max-w-screen-md mx-auto space-y-6"
       >
-        <div className="flex justify-between items-center mb-4 ">
+        <motion.div 
+          className="flex justify-between items-center mb-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
           <div className="flex items-center m-4">
-            <BarChart3 size={22} className="text-blue-500 mr-2" />
-            <h1 className="text-xl font-bold text-white">Registrar Carga</h1>
-          </div>
-          {(tituloTreino.trim() !== "" ||
-            exerciciosSelecionados.length > 0) && (
-            <button
-              onClick={limparRegistroAtual}
-              className="bg-red-500 text-white px-3 m-4 py-1.5 rounded-lg flex items-center text-sm hover:bg-red-600 transition-colors"
-              title="Limpar treino atual"
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 500, 
+                damping: 15,
+                delay: 0.3
+              }}
             >
-              <XCircle size={16} className="mr-1" /> Limpar Atual
-            </button>
-          )}
-        </div>
+              <BarChart3 size={24} className="text-blue-500 mr-2" />
+            </motion.div>
+            <motion.h1 
+              className="text-xl font-bold text-white"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+            >
+              Registrar Carga
+            </motion.h1>
+          </div>
+          
+          <AnimatePresence>
+            {(tituloTreino.trim() !== "" || exerciciosSelecionados.length > 0) && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={limparRegistroAtual}
+                className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 m-4 py-1.5 rounded-lg flex items-center text-sm hover:shadow-lg transition-all duration-300"
+                title="Limpar treino atual"
+              >
+                <XCircle size={16} className="mr-1" /> Limpar Atual
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
-        <div className="bg-slate-800 rounded-xl overflow-hidden mb-4 m-4">
-          <input
+        <motion.div 
+          className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl overflow-hidden mb-4 m-4 shadow-lg"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          whileHover={{ boxShadow: "0 8px 30px rgba(0, 0, 0, 0.3)" }}
+        >
+          <motion.input
             type="text"
             placeholder="Título do treino (ex: Treino A - Peito e Tríceps)"
             value={tituloTreino}
             onChange={(e) => setTituloTreino(e.target.value)}
-            className="w-full p-3.5 bg-slate-700 text-white border-none focus:outline-none"
+            className="w-full p-4 bg-gradient-to-r from-slate-700 to-slate-800 text-white border-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-300"
+            whileFocus={{ scale: 1.01 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
           />
 
           <div className="flex flex-col sm:flex-row">
-            <button
-              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white p-3.5 flex items-center justify-center transition-colors"
+            <motion.button
+              className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-4 flex items-center justify-center transition-all duration-300"
               onClick={() => setModalAberto(true)}
+              whileHover={{ y: -2 }}
+              whileTap={{ y: 0 }}
             >
-              <Dumbbell size={20} className="mr-2" />
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 10, 0] }}
+                transition={{ duration: 1, repeat: Infinity, repeatDelay: 5 }}
+              >
+                <Dumbbell size={20} className="mr-2" />
+              </motion.div>
               Adicionar Exercício
-            </button>
+            </motion.button>
 
             {!cronometroVisivel && (
-              <button
-                className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white p-3.5 flex items-center justify-center transition-colors sm:border-l border-indigo-600"
+              <motion.button
+                className="flex-1 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white p-4 flex items-center justify-center transition-all duration-300 sm:border-l border-indigo-600"
                 onClick={() => setCronometroVisivel(true)}
+                whileHover={{ y: -2 }}
+                whileTap={{ y: 0 }}
               >
-                <Clock size={20} className="mr-2" />
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                >
+                  <Clock size={20} className="mr-2" />
+                </motion.div>
                 Mostrar Cronômetro
-              </button>
+              </motion.button>
             )}
           </div>
-        </div>
+        </motion.div>
 
-        {exerciciosSelecionados.length === 0 && (
-          <div className="bg-slate-800 rounded-xl p-8 flex flex-col items-center justify-center text-center m-4">
-            <div className="bg-slate-700 p-4 rounded-full mb-3">
-              <Dumbbell size={32} className="text-gray-400" />
-            </div>
-            <p className="text-gray-300 text-lg mb-1">
-              Nenhum exercício adicionado ainda.
-            </p>
-            <p className="text-gray-400 text-sm">
-              Clique em "Adicionar Exercício" para começar seu treino.
-            </p>
-          </div>
-        )}
-
-        {exerciciosSelecionados.map((ex, exIndex) => (
-          <div
-            key={ex.id}
-            className=" bg-slate-800 rounded-xl mb-4 overflow-hidden animate-fadeIn m-4"
-            style={{ animationDelay: `${exIndex * 100}ms` }}
-          >
-            <div className="flex justify-between items-center p-4">
-              <div>
-                <p className="font-bold text-white text-lg">{ex.nome}</p>
-                <p className="text-sm text-gray-400 bg-slate-700 px-2 py-0.5 rounded-full inline-block mt-1">
-                  {ex.grupoMuscular}
-                </p>
-              </div>
-              <button
-                onClick={() => handleRemoverExercicio(exIndex)}
-                className="bg-slate-900/50 hover:bg-red-500/20 text-red-400 hover:text-red-300 p-2 rounded-lg transition-colors"
-                title="Remover Exercício"
+        <AnimatePresence>
+          {exerciciosSelecionados.length === 0 && (
+            <motion.div 
+              className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 flex flex-col items-center justify-center text-center m-4 shadow-lg"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            >
+              <motion.div 
+                className="bg-gradient-to-br from-slate-700 to-slate-800 p-5 rounded-full mb-4 shadow-inner"
+                initial={{ y: 10 }}
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
               >
-                <Trash2 size={18} />
-              </button>
-            </div>
+                <Dumbbell size={36} className="text-blue-400" />
+              </motion.div>
+              <motion.p 
+                className="text-gray-200 text-lg mb-2 font-medium"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                Nenhum exercício adicionado ainda.
+              </motion.p>
+              <motion.p 
+                className="text-gray-400 text-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                Clique em "Adicionar Exercício" para começar seu treino.
+              </motion.p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            <div className="px-4 pb-2">
-              <div className="grid grid-cols-12 gap-2 items-center text-sm font-medium text-gray-400 px-1 mb-2">
-                <span className="col-span-1 text-center">Nº</span>
-                <span className="col-span-5 pl-2">Carga (kg)</span>
-                <span className="col-span-5 pl-2">Repetições</span>
-                <span className="col-span-1"></span>
-              </div>
-
-              {ex.series.map((serie, serieIndex) => (
-                <div
-                  key={serieIndex}
-                  className="grid grid-cols-12 gap-2 items-center mb-2 animate-fadeIn"
-                  style={{ animationDelay: `${serieIndex * 50}ms` }}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+        >
+          <AnimatePresence>
+            {exerciciosSelecionados.map((ex, exIndex) => (
+              <motion.div
+                key={ex.id}
+                layout
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl mb-4 overflow-hidden m-4 shadow-lg hover:shadow-xl transition-all duration-300"
+                style={{ originY: 0 }}
+              >
+                <motion.div 
+                  className="flex justify-between items-center p-4 border-b border-slate-700/50"
+                  whileHover={{ backgroundColor: "rgba(30, 41, 59, 0.5)" }}
+                  transition={{ duration: 0.2 }}
                 >
-                  <span className="col-span-1 text-sm font-medium text-gray-400 text-center">
-                    {serieIndex + 1}
-                  </span>
-                  <div className="col-span-5">
-                    <input
-                      type="number"
-                      placeholder="Carga (kg)"
-                      className="w-full bg-slate-700 text-white border-none rounded-md p-2.5 text-sm focus:outline-none"
-                      value={serie.carga}
-                      onChange={(e) =>
-                        handleAlterarSerie(
-                          exIndex,
-                          serieIndex,
-                          "carga",
-                          e.target.value
-                        )
-                      }
-                    />
+                  <div>
+                    <motion.p 
+                      className="font-bold text-white text-lg"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      {ex.nome}
+                    </motion.p>
+                    <motion.p 
+                      className="text-sm text-gray-300 bg-gradient-to-r from-slate-700 to-slate-800 px-3 py-1 rounded-full inline-block mt-1 shadow-inner"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      {ex.grupoMuscular}
+                    </motion.p>
                   </div>
-                  <div className="col-span-5">
-                    <input
-                      type="number"
-                      placeholder="Reps"
-                      className="w-full bg-slate-700 text-white border-none rounded-md p-2.5 text-sm focus:outline-none"
-                      value={serie.repeticoes}
-                      onChange={(e) =>
-                        handleAlterarSerie(
-                          exIndex,
-                          serieIndex,
-                          "repeticoes",
-                          e.target.value
-                        )
-                      }
-                    />
+                  <motion.button
+                    onClick={() => handleRemoverExercicio(exIndex)}
+                    className="bg-slate-900/70 hover:bg-red-500/30 text-red-400 hover:text-red-300 p-2 rounded-lg transition-all duration-300"
+                    title="Remover Exercício"
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <Trash2 size={18} />
+                  </motion.button>
+                </motion.div>
+
+                <div className="px-4 pb-2 pt-3">
+                  <div className="grid grid-cols-12 gap-2 items-center text-sm font-medium text-gray-400 px-1 mb-3">
+                    <span className="col-span-1 text-center">Nº</span>
+                    <span className="col-span-5 pl-2">Carga (kg)</span>
+                    <span className="col-span-5 pl-2">Repetições</span>
+                    <span className="col-span-1"></span>
                   </div>
-                  <div className="col-span-1 flex justify-center">
-                    {ex.series.length > 1 && (
-                      <button
-                        onClick={() => handleRemoverSerie(exIndex, serieIndex)}
-                        className="bg-slate-900/50 text-red-400 hover:text-red-300 p-1 rounded-full transition-colors"
-                        title="Remover esta série"
+
+                  <AnimatePresence>
+                    {ex.series.map((serie, serieIndex) => (
+                      <motion.div
+                        key={serieIndex}
+                        layout
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30, delay: serieIndex * 0.05 }}
+                        className="grid grid-cols-12 gap-2 items-center mb-3"
                       >
-                        <X size={16} />
-                      </button>
-                    )}
+                        <motion.span 
+                          className="col-span-1 text-sm font-medium text-blue-400 text-center bg-slate-800/50 rounded-full h-6 w-6 flex items-center justify-center mx-auto"
+                          whileHover={{ scale: 1.1, backgroundColor: "rgba(59, 130, 246, 0.2)" }}
+                        >
+                          {serieIndex + 1}
+                        </motion.span>
+                        <motion.div 
+                          className="col-span-5"
+                          whileHover={{ scale: 1.02 }}
+                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        >
+                          <input
+                            type="number"
+                            placeholder="Carga (kg)"
+                            className="w-full bg-slate-700 text-white border-none rounded-md p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-300"
+                            value={serie.carga}
+                            onChange={(e) =>
+                              handleAlterarSerie(
+                                exIndex,
+                                serieIndex,
+                                "carga",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </motion.div>
+                        <motion.div 
+                          className="col-span-5"
+                          whileHover={{ scale: 1.02 }}
+                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        >
+                          <input
+                            type="number"
+                            placeholder="Reps"
+                            className="w-full bg-slate-700 text-white border-none rounded-md p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-300"
+                            value={serie.repeticoes}
+                            onChange={(e) =>
+                              handleAlterarSerie(
+                                exIndex,
+                                serieIndex,
+                                "repeticoes",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </motion.div>
+                        <div className="col-span-1 flex justify-center">
+                          {ex.series.length > 1 && (
+                            <motion.button
+                              onClick={() => handleRemoverSerie(exIndex, serieIndex)}
+                              className="bg-slate-900/70 text-red-400 hover:text-red-300 p-1.5 rounded-full transition-all duration-300"
+                              title="Remover esta série"
+                              whileHover={{ scale: 1.2, backgroundColor: "rgba(239, 68, 68, 0.2)" }}
+                              whileTap={{ scale: 0.9 }}
+                            >
+                              <X size={14} />
+                            </motion.button>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+
+                <motion.button
+                  onClick={() => handleAdicionarSerie(exIndex)}
+                  className="w-full bg-gradient-to-r from-blue-900/30 to-blue-800/30 hover:from-blue-800/40 hover:to-blue-700/40 text-blue-300 py-3 flex items-center justify-center transition-all duration-300"
+                  whileHover={{ y: -1 }}
+                  whileTap={{ y: 0 }}
+                >
+                  <motion.div
+                    animate={{ rotate: [0, 0, 180, 180, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 5 }}
+                  >
+                    <Plus size={16} className="mr-1" />
+                  </motion.div>
+                  Adicionar Série
+                </motion.button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
+
+        <AnimatePresence>
+          {exerciciosSelecionados.length > 0 && (
+            <motion.div 
+              className="m-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ delay: 0.2 }}
+            >
+              <motion.button
+                onClick={handleSalvar}
+                className={`bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white p-4 rounded-xl flex items-center justify-center transition-all duration-300 w-full shadow-lg ${
+                  animateButton ? "animate-pulse" : ""
+                }`}
+                whileHover={{ scale: 1.02, boxShadow: "0 10px 25px -5px rgba(34, 197, 94, 0.4)" }}
+                whileTap={{ scale: 0.98 }}
+                animate={animateButton ? 
+                  { scale: [1, 1.05, 1] } : 
+                  { scale: 1 }
+                }
+                transition={{ duration: 0.5 }}
+              >
+                <motion.div
+                  animate={{ rotate: [0, 15, -15, 15, 0] }}
+                  transition={{ duration: 1, repeat: Infinity, repeatDelay: 5 }}
+                >
+                  <Save size={20} className="mr-2" />
+                </motion.div>
+                Salvar Treino
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {modalAberto && (
+            <motion.div 
+              className="fixed inset-0 flex flex-col z-50 bg-black/70 backdrop-blur-sm p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              onClick={() => setModalAberto(false)}
+            >
+              <motion.div
+                className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl overflow-hidden w-full max-w-2xl mx-auto my-auto flex flex-col shadow-2xl"
+                variants={modalVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Cabeçalho do modal */}
+                <div className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-600 to-blue-700">
+                  <div className="flex items-center">
+                    <motion.div
+                      initial={{ rotate: -30, opacity: 0 }}
+                      animate={{ rotate: 0, opacity: 1 }}
+                      transition={{ delay: 0.2, type: "spring" }}
+                    >
+                      <Dumbbell size={22} className="text-white mr-2" />
+                    </motion.div>
+                    <motion.h2 
+                      className="text-xl font-bold text-white"
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      Escolha um Exercício
+                    </motion.h2>
                   </div>
+                  <motion.button
+                    onClick={() => setModalAberto(false)}
+                    className="bg-black/20 hover:bg-black/40 text-white p-2 rounded-lg transition-all duration-300"
+                    whileHover={{ rotate: 90, scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <X size={18} />
+                  </motion.button>
                 </div>
-              ))}
-            </div>
 
-            <button
-              onClick={() => handleAdicionarSerie(exIndex)}
-              className="w-full bg-blue-900/30 hover:bg-blue-900/50 text-blue-300 py-3 flex items-center justify-center transition-colors"
-            >
-              <Plus size={16} className="mr-1" /> Adicionar Série
-            </button>
-          </div>
-        ))}
-
-        {exerciciosSelecionados.length > 0 && (
-          <div className="m-4">
-            <button
-              onClick={handleSalvar}
-              className="bg-green-500 hover:bg-green-600 text-white p-3.5 rounded-xl flex items-center justify-center transition-colors w-full"
-            >
-              <Save size={18} className="mr-2" />
-              Salvar Treino
-            </button>
-          </div>
-        )}
-
-        {modalAberto && (
-          <div className="fixed m-2 inset-0 flex flex-col z-50 animate-fadeIn">
-            <div
-              className="bg-white rounded-xl overflow-hidden w-full mx-auto flex flex-col animate-scaleIn h-[calc(100vh-96px)]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Cabeçalho do modal */}
-              <div className="flex justify-between items-center p-4 bg-blue-500">
-                <div className="flex items-center">
-                  <Dumbbell size={20} className="text-white mr-2" />
-                  <h2 className="text-xl font-bold text-white">
-                    Escolha um Exercício
-                  </h2>
-                </div>
-                <button
-                  onClick={() => setModalAberto(false)}
-                  className="bg-gray-900/50 text-white p-2 rounded-lg"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Área de filtro */}
-              <div className="p-4 bg-gray-100">
-                <div className="flex items-center mb-2">
-                  <Filter size={16} className="text-gray-500 mr-2" />
-                  <label className="text-sm font-medium text-gray-700">
-                    Filtrar por grupo muscular:
-                  </label>
-                </div>
-                <select
-                  value={grupoSelecionadoModal}
-                  onChange={(e) => setGrupoSelecionadoModal(e.target.value)}
-                  className="w-full border text-gray-800 border-gray-300 rounded-lg px-3 py-2.5 bg-white focus:outline-none"
-                >
-                  {gruposDisponiveis.map((grupo) => (
-                    <option key={grupo} value={grupo}>
-                      {grupo}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Lista de exercícios */}
-              <div className="overflow-y-auto flex-grow">
-                {grupoSelecionadoModal !== "Todos" && (
-                  <div className="flex items-center p-3 bg-blue-100/50">
-                    <CircleArrowDown size={16} className="text-blue-500 mr-2" />
-                    <span className="text-gray-800 font-medium">
-                      {grupoSelecionadoModal}
+                {/* Área de filtro */}
+                <div className="p-4 border-b border-slate-700/50 bg-slate-800/50">
+                  <div className="flex items-center mb-2">
+                    <Filter size={16} className="text-blue-400 mr-2" />
+                    <span className="text-sm font-medium text-gray-300">
+                      Filtrar por grupo muscular:
                     </span>
                   </div>
-                )}
+                  <div className="flex flex-wrap gap-2">
+                    {gruposDisponiveis.map((grupo) => (
+                      <motion.button
+                        key={grupo}
+                        onClick={() => setGrupoSelecionadoModal(grupo)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
+                          grupoSelecionadoModal === grupo
+                            ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30"
+                            : "bg-slate-700 text-gray-300 hover:bg-slate-600"
+                        }`}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {grupo}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
 
-                {Object.entries(exerciciosAgrupadosModal).map(
-                  ([grupo, lista]) => (
-                    <div key={grupo}>
-                      {/* Título do grupo muscular (apenas se filtro for "Todos") */}
-                      {grupoSelecionadoModal === "Todos" && (
-                        <div className="p-3 flex items-center font-medium text-gray-800 bg-gray-50 sticky top-0">
-                          <CircleArrowRight
-                            size={16}
-                            className="text-blue-500 mr-2"
-                          />
-                          <span className="text-gray-800 font-medium">
-                            {grupo}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Lista de exercícios do grupo */}
-                      <div>
-                        {lista.map((exercicio) => (
-                          <div
-                            key={exercicio.id}
-                            onClick={() => handleAdicionarExercicio(exercicio)}
-                            className="p-3.5 border-b border-gray-100 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors flex justify-between items-center"
+                {/* Lista de exercícios */}
+                <div className="flex-1 overflow-y-auto p-2 max-h-[60vh]">
+                  <motion.div
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                  >
+                    {Object.entries(exerciciosAgrupadosModal).map(
+                      ([grupo, exerciciosDoGrupo], groupIndex) => (
+                        <motion.div 
+                          key={grupo}
+                          variants={itemVariants}
+                          className="mb-4"
+                          custom={groupIndex}
+                        >
+                          <motion.div 
+                            className="flex items-center mb-2 px-2"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 * groupIndex }}
                           >
-                            <p className="font-medium text-gray-800">
-                              {exercicio.nome}
-                            </p>
-                            <ChevronRight size={18} className="text-gray-400" />
+                            <ChevronRight size={16} className="text-blue-400 mr-1" />
+                            <h3 className="text-sm font-bold text-blue-400 uppercase tracking-wider">
+                              {grupo}
+                            </h3>
+                          </motion.div>
+                          <div className="space-y-1">
+                            {exerciciosDoGrupo.map((exercicio, exIndex) => (
+                              <motion.button
+                                key={exercicio.nome}
+                                onClick={() => handleAdicionarExercicio(exercicio)}
+                                className="w-full text-left p-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-between transition-all duration-300"
+                                variants={itemVariants}
+                                custom={exIndex}
+                                whileHover={{ 
+                                  x: 5, 
+                                  backgroundColor: "rgba(59, 130, 246, 0.2)",
+                                  transition: { duration: 0.2 }
+                                }}
+                                whileTap={{ scale: 0.98 }}
+                              >
+                                <span>{exercicio.nome}</span>
+                                <motion.div
+                                  whileHover={{ scale: 1.2, x: -5 }}
+                                  className="text-blue-400"
+                                >
+                                  <CircleArrowRight size={16} />
+                                </motion.div>
+                              </motion.button>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-      <style>
-        {`
-          @keyframes pulse {
-            0% {
-              opacity: 1;
-            }
-            50% {
-              opacity: 0.7;
-            }
-            100% {
-              opacity: 1;
-            }
-          }
-
-          .timer-pulse {
-            animation: pulse 1s infinite;
-          }
-
-          @supports (-webkit-touch-callout: none) {
-            .cronometro-minimizado {
-              -webkit-tap-highlight-color: transparent;
-            }
-          }
-        `}
-      </style>
+                        </motion.div>
+                      )
+                    )}
+                  </motion.div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </PageWrapper>
   );
 };
