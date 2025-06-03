@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react"; // Adicionado useRef
 import { motion, AnimatePresence } from "framer-motion";
 import { exercicios as exerciciosDaBiblioteca } from "./Biblioteca";
 import { useAuth } from "../context/AuthContext";
@@ -84,6 +84,9 @@ const RegistrarCarga = () => {
 
   const [grupoSelecionadoModal, setGrupoSelecionadoModal] = useState("Todos"); // Estado para o filtro do modal
 
+  // Ref para o último exercício adicionado
+  const ultimoExercicioRef = useRef(null);
+
   // Animação de entrada
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -136,15 +139,26 @@ const RegistrarCarga = () => {
     }
   }, [tituloTreino, exerciciosSelecionados, user]);
 
+  // Efeito para rolar para o último exercício adicionado
+  useEffect(() => {
+    if (ultimoExercicioRef.current) {
+      // Usar setTimeout para garantir que o DOM foi atualizado após a adição
+      setTimeout(() => {
+        ultimoExercicioRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100); // Pequeno delay pode ser necessário
+    }
+  }, [exerciciosSelecionados.length]); // Disparar quando o número de exercícios mudar
+
   const handleAdicionarExercicio = (exercicio) => {
+    const novoExercicio = {
+      id: Date.now() + Math.random(), // ID único para o item na lista atual
+      nome: exercicio.nome,
+      grupoMuscular: exercicio.grupoMuscular,
+      series: [{ carga: "", repeticoes: "" }],
+    };
     setExerciciosSelecionados((prev) => [
       ...prev,
-      {
-        id: Date.now() + Math.random(), // ID único para o item na lista atual
-        nome: exercicio.nome,
-        grupoMuscular: exercicio.grupoMuscular,
-        series: [{ carga: "", repeticoes: "" }],
-      },
+      novoExercicio
     ]);
     setModalAberto(false);
     
@@ -300,7 +314,8 @@ const RegistrarCarga = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="p-1 max-w-screen-md mx-auto space-y-6"
+        // Adicionado padding-bottom para compensar a navbar (ajuste o valor conforme necessário)
+        className="p-1 max-w-screen-md mx-auto space-y-6 pb-24" // Ex: pb-24 (96px)
       >
         <motion.div 
           className="flex justify-between items-center mb-4"
@@ -349,6 +364,7 @@ const RegistrarCarga = () => {
           </AnimatePresence>
         </motion.div>
 
+        {/* Input de Título e Botão Adicionar Exercício (Inicial) */}
         <motion.div 
           className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl overflow-hidden mb-4 m-4 shadow-lg"
           initial={{ y: 20, opacity: 0 }}
@@ -366,41 +382,45 @@ const RegistrarCarga = () => {
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
           />
 
-          <div className="flex flex-col sm:flex-row">
-            <motion.button
-              className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-4 flex items-center justify-center transition-all duration-300"
-              onClick={() => setModalAberto(true)}
-              whileHover={{ y: -2 }}
-              whileTap={{ y: 0 }}
-            >
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 10, 0] }}
-                transition={{ duration: 1, repeat: Infinity, repeatDelay: 5 }}
-              >
-                <Dumbbell size={20} className="mr-2" />
-              </motion.div>
-              Adicionar Exercício
-            </motion.button>
-
-            {!cronometroVisivel && (
+          {/* Botão Adicionar Exercício - Visível apenas se NÃO houver exercícios */}
+          {exerciciosSelecionados.length === 0 && (
+            <div className="flex flex-col sm:flex-row">
               <motion.button
-                className="flex-1 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white p-4 flex items-center justify-center transition-all duration-300 sm:border-l border-indigo-600"
-                onClick={() => setCronometroVisivel(true)}
+                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-4 flex items-center justify-center transition-all duration-300"
+                onClick={() => setModalAberto(true)}
                 whileHover={{ y: -2 }}
                 whileTap={{ y: 0 }}
               >
                 <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                  animate={{ rotate: [0, 10, -10, 10, 0] }}
+                  transition={{ duration: 1, repeat: Infinity, repeatDelay: 5 }}
                 >
-                  <Clock size={20} className="mr-2" />
+                  <Dumbbell size={20} className="mr-2" />
                 </motion.div>
-                Mostrar Cronômetro
+                Adicionar Exercício
               </motion.button>
-            )}
-          </div>
+
+              {!cronometroVisivel && (
+                <motion.button
+                  className="flex-1 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white p-4 flex items-center justify-center transition-all duration-300 sm:border-l border-indigo-600"
+                  onClick={() => setCronometroVisivel(true)}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ y: 0 }}
+                >
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Clock size={20} className="mr-2" />
+                  </motion.div>
+                  Mostrar Cronômetro
+                </motion.button>
+              )}
+            </div>
+          )}
         </motion.div>
 
+        {/* Mensagem de Nenhum Exercício */}
         <AnimatePresence>
           {exerciciosSelecionados.length === 0 && (
             <motion.div 
@@ -438,6 +458,7 @@ const RegistrarCarga = () => {
           )}
         </AnimatePresence>
 
+        {/* Lista de Exercícios Selecionados */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -447,6 +468,8 @@ const RegistrarCarga = () => {
           <AnimatePresence>
             {exerciciosSelecionados.map((ex, exIndex) => (
               <motion.div
+                // Adiciona a ref ao último elemento da lista
+                ref={exIndex === exerciciosSelecionados.length - 1 ? ultimoExercicioRef : null}
                 key={ex.id}
                 layout
                 variants={itemVariants}
@@ -456,6 +479,7 @@ const RegistrarCarga = () => {
                 className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl mb-4 overflow-hidden m-4 shadow-lg hover:shadow-xl transition-all duration-300"
                 style={{ originY: 0 }}
               >
+                {/* Cabeçalho do Exercício */}
                 <motion.div 
                   className="flex justify-between items-center p-4 border-b border-slate-700/50"
                   whileHover={{ backgroundColor: "rgba(30, 41, 59, 0.5)" }}
@@ -471,9 +495,9 @@ const RegistrarCarga = () => {
                       {ex.nome}
                     </motion.p>
                     <motion.p 
-                      className="text-sm text-gray-300 bg-gradient-to-r from-slate-700 to-slate-800 px-3 py-1 rounded-full inline-block mt-1 shadow-inner"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
+                      className="text-xs text-blue-400 uppercase tracking-wider"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 }}
                     >
                       {ex.grupoMuscular}
@@ -481,27 +505,21 @@ const RegistrarCarga = () => {
                   </div>
                   <motion.button
                     onClick={() => handleRemoverExercicio(exIndex)}
-                    className="bg-slate-900/70 hover:bg-red-500/30 text-red-400 hover:text-red-300 p-2 rounded-lg transition-all duration-300"
-                    title="Remover Exercício"
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    whileTap={{ scale: 0.9 }}
+                    className="bg-slate-900/70 text-red-400 hover:text-red-300 p-2 rounded-full transition-all duration-300"
+                    title="Remover exercício"
+                    whileHover={{ scale: 1.2, rotate: 15, backgroundColor: "rgba(239, 68, 68, 0.2)" }}
+                    whileTap={{ scale: 0.9, rotate: -15 }}
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={16} />
                   </motion.button>
                 </motion.div>
 
-                <div className="px-4 pb-2 pt-3">
-                  <div className="grid grid-cols-12 gap-2 items-center text-sm font-medium text-gray-400 px-1 mb-3">
-                    <span className="col-span-1 text-center">Nº</span>
-                    <span className="col-span-5 pl-2">Carga (kg)</span>
-                    <span className="col-span-5 pl-2">Repetições</span>
-                    <span className="col-span-1"></span>
-                  </div>
-
+                {/* Séries do Exercício */}
+                <div className="p-4 space-y-3">
                   <AnimatePresence>
                     {ex.series.map((serie, serieIndex) => (
                       <motion.div
-                        key={serieIndex}
+                        key={serieIndex} // Usar index como chave aqui é aceitável se a ordem não muda drasticamente
                         layout
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -573,6 +591,7 @@ const RegistrarCarga = () => {
                   </AnimatePresence>
                 </div>
 
+                {/* Botão Adicionar Série */}
                 <motion.button
                   onClick={() => handleAdicionarSerie(exIndex)}
                   className="w-full bg-gradient-to-r from-blue-900/30 to-blue-800/30 hover:from-blue-800/40 hover:to-blue-700/40 text-blue-300 py-3 flex items-center justify-center transition-all duration-300"
@@ -592,15 +611,33 @@ const RegistrarCarga = () => {
           </AnimatePresence>
         </motion.div>
 
+        {/* Botões Adicionar Exercício (quando já existem exercícios) e Salvar Treino */}
         <AnimatePresence>
           {exerciciosSelecionados.length > 0 && (
             <motion.div 
-              className="m-4"
+              className="m-4 space-y-4" // Adicionado space-y-4 para espaçar os botões
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ delay: 0.2 }}
             >
+              {/* Botão Adicionar Exercício - Visível APENAS se JÁ houver exercícios */}
+              <motion.button
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-4 rounded-xl flex items-center justify-center transition-all duration-300 shadow-md"
+                onClick={() => setModalAberto(true)}
+                whileHover={{ y: -2, boxShadow: "0 10px 20px rgba(59, 130, 246, 0.3)" }}
+                whileTap={{ y: 0 }}
+              >
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 10, 0] }}
+                  transition={{ duration: 1, repeat: Infinity, repeatDelay: 5 }}
+                >
+                  <Dumbbell size={20} className="mr-2" />
+                </motion.div>
+                Adicionar Mais Exercícios
+              </motion.button>
+
+              {/* Botão Salvar Treino */}
               <motion.button
                 onClick={handleSalvar}
                 className={`bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white p-4 rounded-xl flex items-center justify-center transition-all duration-300 w-full shadow-lg ${
@@ -626,15 +663,17 @@ const RegistrarCarga = () => {
           )}
         </AnimatePresence>
 
+        {/* Modal de Seleção de Exercício */}
         <AnimatePresence>
           {modalAberto && (
             <motion.div 
-              className="fixed inset-0 flex flex-col z-50 bg-black/70 backdrop-blur-sm p-4"
+              // Adicionado padding-bottom para compensar a navbar (ajuste conforme necessário)
+              className="fixed inset-0 flex flex-col z-50 bg-black/70 backdrop-blur-sm p-4 pb-24" // Ex: pb-24
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              onClick={() => setModalAberto(false)}
+              onClick={() => setModalAberto(false)} // Fechar ao clicar fora
             >
               <motion.div
                 className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl overflow-hidden w-full max-w-2xl mx-auto my-auto flex flex-col shadow-2xl"
@@ -642,7 +681,7 @@ const RegistrarCarga = () => {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()} // Evitar fechar ao clicar dentro
               >
                 {/* Cabeçalho do modal */}
                 <div className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-600 to-blue-700">
@@ -700,8 +739,8 @@ const RegistrarCarga = () => {
                   </div>
                 </div>
 
-                {/* Lista de exercícios */}
-                <div className="flex-1 overflow-y-auto p-2 max-h-[60vh]">
+                {/* Lista de exercícios - Ajustada altura máxima e padding */}
+                <div className="flex-1 overflow-y-auto p-2 max-h-[calc(100vh-20rem)]"> {/* Ajuste dinâmico da altura máxima, considere cabeçalho, filtro e padding */}
                   <motion.div
                     variants={containerVariants}
                     initial="hidden"
@@ -766,3 +805,4 @@ const RegistrarCarga = () => {
 };
 
 export default RegistrarCarga;
+
